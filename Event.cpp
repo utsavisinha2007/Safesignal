@@ -50,8 +50,8 @@ int Event::getSeverityWeight() const {
         return 40; // Critical direct distress signal
     } else if (eventType == "Fall Detected" || eventType == "Impact") {
         return 30; // Severe physical incident signal
-    } else if (eventType == "Route Deviation" || eventType == "Geofence Exit") {
-        return 20; // Moderate safety anomaly
+    } else if (eventType == "Route Deviation" || eventType == "Geofence Exit" || eventType == "Missed Check-in") {
+        return 20; // Moderate safety anomaly / missed scheduled check-in
     } else if (eventType == "Motion Alert" || eventType == "Noise Spike") {
         return 10; // Low-level environment trigger
     } else {
@@ -66,4 +66,3 @@ void Event::displayEvent() const {
          << " | Time: " << timestamp
          << " | Weight: " << getSeverityWeight() << endl;
 }
-
