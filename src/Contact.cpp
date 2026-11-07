@@ -1,4 +1,4 @@
-#include "Contact.h"
+#include "../include/Contact.h"
 
 using namespace std;
 
@@ -87,4 +87,5 @@ void Contact::displayContact() const {
          << name << " (" << relationship << ") - Phone: " << phoneNumber
          << " | Priority " << priorityLevel << " (" << getPriorityDescription() << ")" << endl;
 }
+
 

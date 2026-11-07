@@ -1,4 +1,4 @@
-#include "SafetySystem.h"
+#include "../include/SafetySystem.h"
 
 using namespace std;
 
@@ -399,3 +399,4 @@ void SafetySystem::displaySystemStatus() {
     responseManager.displayPendingIncidents();
     cout << "=============================================\n" << endl;
 }
+

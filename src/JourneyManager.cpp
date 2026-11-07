@@ -1,4 +1,4 @@
-#include "JourneyManager.h"
+#include "../include/JourneyManager.h"
 
 using namespace std;
 
@@ -175,4 +175,5 @@ string JourneyManager::getNextExpectedCheckpoint() const {
     }
     return "None";
 }
+
 

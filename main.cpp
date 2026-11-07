@@ -3,10 +3,10 @@
 #include <vector>
 #include <limits>
 
-#include "Contact.h"
-#include "Event.h"
-#include "Incident.h"
-#include "SafetySystem.h"
+#include "include/Contact.h"
+#include "include/Event.h"
+#include "include/Incident.h"
+#include "include/SafetySystem.h"
 
 using namespace std;
 
@@ -406,3 +406,4 @@ int main() {
 
     return 0;
 }
+

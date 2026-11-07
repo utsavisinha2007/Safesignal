@@ -1,4 +1,4 @@
-#include "Event.h"
+#include "../include/Event.h"
 
 using namespace std;
 
@@ -66,3 +66,4 @@ void Event::displayEvent() const {
          << " | Time: " << timestamp
          << " | Weight: " << getSeverityWeight() << endl;
 }
+

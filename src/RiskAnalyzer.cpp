@@ -1,4 +1,4 @@
-#include "RiskAnalyzer.h"
+#include "../include/RiskAnalyzer.h"
 #include <algorithm>
 #include <cctype>
 
@@ -445,3 +445,4 @@ void RiskAnalyzer::clearEvents() {
     lastTimeOfDaySeconds = -1;
     latestTimestampStr = "00:00:00";
 }
+

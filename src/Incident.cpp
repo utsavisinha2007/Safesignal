@@ -1,4 +1,4 @@
-#include "Incident.h"
+#include "../include/Incident.h"
 #include <iomanip>
 
 using namespace std;
@@ -342,3 +342,4 @@ void Incident::displayNotificationHistory() const {
              << endl;
     }
 }
+

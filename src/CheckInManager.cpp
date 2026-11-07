@@ -1,4 +1,4 @@
-#include "CheckInManager.h"
+#include "../include/CheckInManager.h"
 #include <cctype>
 
 using namespace std;
@@ -300,3 +300,4 @@ int CheckInManager::getMissedCount() const {
     }
     return count;
 }
+
