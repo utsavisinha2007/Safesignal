@@ -23,7 +23,7 @@ void SafetySystem::logEvent(const Event& event) {
         if (!activeRiskEscalated) {
             // Risk threshold reached for the first time in this cycle -> trigger automatic escalation
             autoIncidentCounter++;
-            int autoSeverity = (riskAnalyzer.getRiskLevel() == "CRITICAL") ? 5 : 4;
+            int autoSeverity = (riskAnalyzer.getRiskLevel() == "High Risk" || riskAnalyzer.getRiskLevel() == "CRITICAL") ? 5 : 4;
             string autoDescription = "AUTOMATIC ESCALATION: " + riskAnalyzer.getRiskLevel()
                                    + " risk pattern detected (Risk Score: "
                                    + to_string(riskAnalyzer.calculateRiskScore()) + ").";
@@ -115,9 +115,13 @@ bool SafetySystem::completeCheckIn(int checkInID) {
     return checkInManager.completeCheckIn(checkInID);
 }
 
-// Processes simulated current-time update. If check-ins are missed, passes every event to logEvent().
+// Processes simulated current-time update. Advances RiskAnalyzer sliding window and checks for missed check-ins.
 void SafetySystem::processCurrentTimeUpdate(const string& currentTime) {
     cout << "\n--- [SafetySystem] Processing Current-Time Check-in Update ---" << endl;
+    
+    // Advance RiskAnalyzer sliding time window
+    riskAnalyzer.updateCurrentTime(currentTime);
+
     vector<Event> missedEvents = checkInManager.updateCurrentTime(currentTime);
 
     if (!missedEvents.empty()) {
