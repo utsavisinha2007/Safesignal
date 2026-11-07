@@ -5,6 +5,7 @@ using namespace std;
 // Constructor
 SafetySystem::SafetySystem() {
     activeRiskEscalated = false;
+    activeVerificationEpisode = false;
     autoIncidentCounter = 9000; // Auto-generated incidents use IDs starting at 9001
 }
 
@@ -13,36 +14,44 @@ SafetySystem::~SafetySystem() {
     // Member objects clean up automatically
 }
 
-// Logs an incoming event and evaluates risk for automatic incident escalation
+// Logs an incoming event and evaluates risk for safety verification
 void SafetySystem::logEvent(const Event& event) {
     cout << "\n--- [SafetySystem] Ingesting New Event ---" << endl;
     riskAnalyzer.addEvent(event);
 
-    // Evaluate risk state
+    // Evaluate risk state (Concerning / High Risk when score >= 50)
     if (riskAnalyzer.isRiskHigh()) {
-        if (!activeRiskEscalated) {
-            // Risk threshold reached for the first time in this cycle -> trigger automatic escalation
-            autoIncidentCounter++;
-            int autoSeverity = (riskAnalyzer.getRiskLevel() == "High Risk" || riskAnalyzer.getRiskLevel() == "CRITICAL") ? 5 : 4;
-            string autoDescription = "AUTOMATIC ESCALATION: " + riskAnalyzer.getRiskLevel()
-                                   + " risk pattern detected (Risk Score: "
-                                   + to_string(riskAnalyzer.calculateRiskScore()) + ").";
+        if (!activeVerificationEpisode) {
+            int currentScore = riskAnalyzer.calculateRiskScore();
+            string currentLevel = riskAnalyzer.getRiskLevel();
 
-            Incident autoIncident(autoIncidentCounter, autoDescription, event.getLocation(), autoSeverity);
+            cout << "  [SafetySystem ALERT] Risk threshold reached (Score: "
+                 << currentScore << ", Level: " << currentLevel
+                 << ")! Initiating Safety Verification..." << endl;
 
-            cout << "  [ALERT] Risk threshold exceeded! Auto-generating Incident #"
-                 << autoIncidentCounter << " (Severity " << autoSeverity << "/5)." << endl;
+            int reqID = verificationManager.createVerificationRequest(
+                currentScore,
+                currentLevel,
+                event.getLocation(),
+                event.getTimestamp()
+            );
 
-            responseManager.addIncident(autoIncident);
-            activeRiskEscalated = true; // Latch flag to avoid repeated spam while condition persists
+            if (reqID != -1) {
+                activeVerificationEpisode = true;
+                cout << "  [SafetySystem] Safety Verification Request #" << reqID
+                     << " created. Awaiting user response before emergency escalation." << endl;
+            }
         } else {
-            cout << "  [NOTICE] High risk persists, but an incident has already been dispatched for this event cycle." << endl;
+            cout << "  [SafetySystem Notice] High-risk state persists (Score: "
+                 << riskAnalyzer.calculateRiskScore()
+                 << "), but safety verification has already been initiated for this episode." << endl;
         }
     } else {
-        // If the risk has dropped below the threshold, reset the latch
-        if (activeRiskEscalated) {
-            activeRiskEscalated = false;
-            cout << "  [INFO] Risk levels have normalized. Auto-escalation flag reset." << endl;
+        // If risk drops below threshold and no active pending verification remains, reset the episode latch
+        if (activeVerificationEpisode && !verificationManager.hasActivePendingRequest()) {
+            activeVerificationEpisode = false;
+            cout << "  [SafetySystem Info] Risk levels have normalized (Score: "
+                 << riskAnalyzer.calculateRiskScore() << "). Verification episode reset." << endl;
         }
     }
 }
@@ -115,15 +124,55 @@ bool SafetySystem::completeCheckIn(int checkInID) {
     return checkInManager.completeCheckIn(checkInID);
 }
 
-// Processes simulated current-time update. Advances RiskAnalyzer sliding window and checks for missed check-ins.
+// Processes simulated current-time update.
+// Advances RiskAnalyzer sliding window, checks verification request deadlines,
+// and evaluates scheduled check-ins for missed events.
 void SafetySystem::processCurrentTimeUpdate(const string& currentTime) {
-    cout << "\n--- [SafetySystem] Processing Current-Time Check-in Update ---" << endl;
+    cout << "\n--- [SafetySystem] Processing Current-Time Check-in & Verification Update ---" << endl;
     
-    // Advance RiskAnalyzer sliding time window
+    // 1. Advance RiskAnalyzer sliding time window
     riskAnalyzer.updateCurrentTime(currentTime);
 
+    // If risk normalized below threshold after sliding window advancement, reset the episode latch
+    if (!riskAnalyzer.isRiskHigh() && activeVerificationEpisode && !verificationManager.hasActivePendingRequest()) {
+        activeVerificationEpisode = false;
+        cout << "  [SafetySystem Info] Risk levels have normalized below threshold (Score: "
+             << riskAnalyzer.calculateRiskScore() << "). Active verification episode reset." << endl;
+    }
+
+    // 2. Evaluate active verification request timeouts against simulated current time
+    // When a request times out, create and dispatch an emergency incident (Phase 4.4)
+    vector<int> timedOutIDs = verificationManager.updateCurrentTime(currentTime);
+    if (!timedOutIDs.empty()) {
+        for (int tid : timedOutIDs) {
+            cout << "  [SafetySystem TIMEOUT ALERT] Verification Request #" << tid
+                 << " has TIMED OUT at " << currentTime << "! Initiating Automatic Emergency Dispatch..." << endl;
+
+            if (verificationToIncidentMap.find(tid) == verificationToIncidentMap.end()) {
+                VerificationRequest req;
+                if (verificationManager.getRequestByID(tid, req)) {
+                    autoIncidentCounter++;
+                    int incID = autoIncidentCounter;
+                    string desc = "EMERGENCY ESCALATION: Verification timeout - no user response (Verification Request #"
+                                + to_string(tid) + ", Risk: " + to_string(req.riskScore)
+                                + " [" + req.riskLevel + "], Deadline: " + req.deadlineTimestamp + ").";
+
+                    Incident inc(incID, desc, req.triggerLocation, 5, tid, req.riskScore, req.riskLevel, currentTime);
+                    responseManager.dispatchEmergency(inc, currentTime);
+                    verificationToIncidentMap[tid] = incID;
+                    activeRiskEscalated = true;
+                }
+            }
+        }
+    }
+
+    // 3. Evaluate priority escalation timeouts in ResponseManager (Phase 4.4)
+    responseManager.updateCurrentTime(currentTime);
+
+    // 4. Evaluate scheduled check-ins for missed check-ins
     vector<Event> missedEvents = checkInManager.updateCurrentTime(currentTime);
 
+    // 5. Ingest any missed check-in events into SafetySystem
     if (!missedEvents.empty()) {
         cout << "  [SafetySystem ALERT] " << missedEvents.size()
              << " missed check-in event(s) detected! Forwarding to RiskAnalyzer..." << endl;
@@ -133,6 +182,141 @@ void SafetySystem::processCurrentTimeUpdate(const string& currentTime) {
     } else {
         cout << "  [SafetySystem] Time updated to " << currentTime << ". No missed check-ins." << endl;
     }
+}
+
+// Confirms the user is safe, closing the active or specified verification request
+bool SafetySystem::confirmUserSafe(int requestID) {
+    cout << "\n--- [SafetySystem] Confirming User Safety ---" << endl;
+    int targetID = requestID;
+    if (targetID <= 0) {
+        targetID = verificationManager.getActiveRequestID();
+        if (targetID <= 0) {
+            cout << "  [SafetySystem Error] No active pending verification request to confirm." << endl;
+            return false;
+        }
+    }
+
+    bool success = verificationManager.confirmSafe(targetID);
+    if (success) {
+        // Only reset the episode latch if the underlying risk score has actually normalized below threshold.
+        // If the risk score remains >= 50, keep activeVerificationEpisode true to prevent subsequent events
+        // from immediately reopening duplicate verification requests for the same unresolved episode.
+        if (!riskAnalyzer.isRiskHigh()) {
+            activeVerificationEpisode = false;
+            cout << "  [SafetySystem] User confirmed safe for Request #" << targetID << "." << endl;
+            cout << "  Emergency escalation averted. Risk normalized; episode latch reset." << endl;
+        } else {
+            cout << "  [SafetySystem] User confirmed safe for Request #" << targetID << "." << endl;
+            cout << "  Emergency escalation averted. Episode remains marked as addressed while risk score ("
+                 << riskAnalyzer.calculateRiskScore() << ") remains elevated." << endl;
+        }
+    }
+    return success;
+}
+
+// User explicitly requests immediate emergency help (Phase 4.4)
+bool SafetySystem::requestImmediateHelp(int requestID) {
+    cout << "\n--- [SafetySystem] User Requesting Immediate Help ---" << endl;
+    int targetID = requestID;
+    if (targetID <= 0) {
+        targetID = verificationManager.getActiveRequestID();
+        if (targetID <= 0) {
+            cout << "  [SafetySystem Error] No active pending verification request to request help for." << endl;
+            return false;
+        }
+    }
+
+    bool success = verificationManager.requestHelp(targetID);
+    if (success) {
+        cout << "  [SafetySystem ALERT] Immediate help registered for Request #" << targetID
+             << "! Initiating Priority-Based Emergency Dispatch..." << endl;
+
+        if (verificationToIncidentMap.find(targetID) == verificationToIncidentMap.end()) {
+            VerificationRequest req;
+            if (verificationManager.getRequestByID(targetID, req)) {
+                autoIncidentCounter++;
+                int incID = autoIncidentCounter;
+                string timeStr = req.resolutionTimestamp.empty() ? req.creationTimestamp : req.resolutionTimestamp;
+                string desc = "EMERGENCY ESCALATION: User requested immediate help (Verification Request #"
+                            + to_string(targetID) + ", Risk: " + to_string(req.riskScore)
+                            + " [" + req.riskLevel + "]).";
+
+                Incident inc(incID, desc, req.triggerLocation, 5, targetID, req.riskScore, req.riskLevel, timeStr);
+                responseManager.dispatchEmergency(inc, timeStr);
+                verificationToIncidentMap[targetID] = incID;
+                activeRiskEscalated = true;
+            }
+        }
+    }
+    return success;
+}
+
+// Displays all currently pending verification requests
+void SafetySystem::displayPendingVerifications() const {
+    verificationManager.displayPendingRequests();
+}
+
+// Displays verification statistics
+void SafetySystem::displayVerificationStatistics() const {
+    verificationManager.displayVerificationStatistics();
+}
+
+// Checks if there is an active pending verification request
+bool SafetySystem::hasActiveVerification() const {
+    return verificationManager.hasActivePendingRequest();
+}
+
+// Returns the ID of the active pending verification request, or -1 if none
+int SafetySystem::getActiveVerificationID() const {
+    return verificationManager.getActiveRequestID();
+}
+
+// Returns a const reference to the internal VerificationManager
+const VerificationManager& SafetySystem::getVerificationManager() const {
+    return verificationManager;
+}
+
+// ---------------------------------------------------------------
+// Incident Lifecycle & Priority Dispatch Operations (Phase 4.4 & 4.5)
+// ---------------------------------------------------------------
+
+bool SafetySystem::acknowledgeIncident(int incidentID, int contactID, const string& timestamp) {
+    cout << "\n--- [SafetySystem] Recording Contact Incident Acknowledgement ---" << endl;
+    return responseManager.acknowledgeIncident(incidentID, contactID, timestamp);
+}
+
+bool SafetySystem::resolveIncident(int incidentID, const string& notes, const string& timestamp) {
+    cout << "\n--- [SafetySystem] Resolving Incident ---" << endl;
+    return responseManager.resolveIncident(incidentID, notes, timestamp);
+}
+
+bool SafetySystem::cancelIncident(int incidentID, const string& reason, const string& timestamp) {
+    cout << "\n--- [SafetySystem] Cancelling Incident ---" << endl;
+    return responseManager.cancelIncident(incidentID, reason, timestamp);
+}
+
+void SafetySystem::displayActiveIncidents() const {
+    responseManager.displayActiveIncidents();
+}
+
+void SafetySystem::displayIncidentHistory() const {
+    responseManager.displayIncidentHistory();
+}
+
+void SafetySystem::displayNotificationHistory(int incidentID) const {
+    responseManager.displayNotificationHistory(incidentID);
+}
+
+void SafetySystem::displayIncidentStatistics() const {
+    responseManager.displayIncidentStatistics();
+}
+
+ResponseManager& SafetySystem::getResponseManager() {
+    return responseManager;
+}
+
+const ResponseManager& SafetySystem::getResponseManager() const {
+    return responseManager;
 }
 
 // Displays all scheduled check-ins
@@ -150,6 +334,11 @@ void SafetySystem::displayCheckInStatistics() const {
     cout << "  Unconfirmed Missed:  " << checkInManager.getMissedCount() << endl;
     cout << "  Grace Period:        " << checkInManager.getGracePeriod() << " minutes" << endl;
     cout << "------------------------------------\n" << endl;
+}
+
+// Returns a const reference to the internal RiskAnalyzer for testing/inspection
+const RiskAnalyzer& SafetySystem::getRiskAnalyzer() const {
+    return riskAnalyzer;
 }
 
 // Displays detailed risk analysis diagnostics
@@ -193,7 +382,7 @@ void SafetySystem::displaySystemStatus() {
     cout << "  Current Risk Score:     " << riskAnalyzer.calculateRiskScore()
          << " (" << riskAnalyzer.getRiskLevel() << ")" << endl;
     cout << "  High-Risk State:        " << (riskAnalyzer.isRiskHigh() ? "YES [TRIGGERED]" : "NO [NORMAL]") << endl;
-    cout << "  Active Risk Escalated:  " << (activeRiskEscalated ? "YES (Alert Sent)" : "NO") << endl;
+    cout << "  Active Verification:    " << (verificationManager.hasActivePendingRequest() ? "YES (Pending User Response)" : "NO") << endl;
     cout << "  Pending Emergencies:    " << responseManager.getPendingIncidentCount() << endl;
     cout << "  Active Journey:         " << (journeyManager.isActive() ? "YES" : "NO") << endl;
     cout << "  Scheduled Check-ins:    " << checkInManager.getCheckInCount()
@@ -201,9 +390,12 @@ void SafetySystem::displaySystemStatus() {
          << checkInManager.getMissedCount() << " missed)" << endl;
     cout << "=============================================" << endl;
 
-    // Show details of contacts, recent events, and pending incidents
+    // Show details of contacts, recent events, pending verifications, and pending incidents
     responseManager.displayContacts();
     riskAnalyzer.displayRecentEvents();
+    if (verificationManager.hasActivePendingRequest()) {
+        verificationManager.displayPendingRequests();
+    }
     responseManager.displayPendingIncidents();
     cout << "=============================================\n" << endl;
 }

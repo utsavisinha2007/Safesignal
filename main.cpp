@@ -19,6 +19,9 @@ int getIntInput(const string& prompt) {
             cin.ignore(numeric_limits<streamsize>::max(), '\n'); // clear remaining newline
             return value;
         } else {
+            if (cin.eof()) {
+                return 30; // Safely trigger exit on end-of-file
+            }
             cout << "  [Error] Invalid numeric input. Please enter an integer.\n";
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -30,10 +33,15 @@ int getIntInput(const string& prompt) {
 string getStringInput(const string& prompt) {
     string value;
     cout << prompt;
-    getline(cin, value);
+    if (!getline(cin, value)) {
+        if (cin.eof()) return "";
+    }
     while (value.empty()) {
+        if (cin.eof()) return "";
         cout << "  [Error] Input cannot be empty. Please re-enter: ";
-        getline(cin, value);
+        if (!getline(cin, value)) {
+            if (cin.eof()) return "";
+        }
     }
     return value;
 }
@@ -49,8 +57,8 @@ int main() {
     cout << "==========================================================" << endl;
     cout << "  Features: Queue-based Event Analysis, Priority Queue    " << endl;
     cout << "  Emergency Triage, Vector-based Contact Directory,       " << endl;
-    cout << "  Journey Route Deviation Monitoring, and Scheduled       " << endl;
-    cout << "  Safety Check-in Tracking with Grace Period Detection.   " << endl;
+    cout << "  Journey Route Deviation Monitoring, Scheduled Safety    " << endl;
+    cout << "  Check-in Tracking, and Verification Timeout Management. " << endl;
     cout << "  (Note: Emergency dispatches, location, and time updates " << endl;
     cout << "   are simulated for demonstration and testing)           " << endl;
     cout << "==========================================================\n" << endl;
@@ -58,7 +66,7 @@ int main() {
     int choice = 0;
     bool running = true;
 
-    while (running) {
+    while (running && !cin.eof()) {
         cout << "================== SAFESIGNAL MAIN MENU ==================" << endl;
         cout << "  --- Core Safety & Incident Management ---" << endl;
         cout << "  1.  Register Emergency Contact" << endl;
@@ -81,11 +89,24 @@ int main() {
         cout << "  16. Submit Simulated Current-Time Update" << endl;
         cout << "  17. View Scheduled Check-ins" << endl;
         cout << "  18. View Check-in Statistics" << endl;
+        cout << "  --- Safety Verification & Response (Phase 4) ---" << endl;
+        cout << "  19. Confirm User Safety (Avert Escalation)" << endl;
+        cout << "  20. Request Immediate Help" << endl;
+        cout << "  21. View Pending Verification Requests" << endl;
+        cout << "  22. View Verification Statistics" << endl;
+        cout << "  --- Incident Lifecycle & Priority Dispatch (Phase 4.4 & 4.5) ---" << endl;
+        cout << "  23. View Active Emergencies & Incidents" << endl;
+        cout << "  24. Acknowledge Incident (by Emergency Contact)" << endl;
+        cout << "  25. Resolve Incident" << endl;
+        cout << "  26. Cancel Incident (False Alarm)" << endl;
+        cout << "  27. View Complete Incident History" << endl;
+        cout << "  28. View Dispatch & Notification Audit Trail" << endl;
+        cout << "  29. View Incident & Response Statistics" << endl;
         cout << "  --- System ---" << endl;
-        cout << "  19. Exit System" << endl;
+        cout << "  30. Exit System" << endl;
         cout << "==========================================================" << endl;
 
-        choice = getIntInput("Enter your choice (1-19): ");
+        choice = getIntInput("Enter your choice (1-30): ");
 
         switch (choice) {
             case 1: {
@@ -94,9 +115,21 @@ int main() {
                 int id = getIntInput("Enter Contact ID (e.g. 101): ");
                 string name = getStringInput("Enter Contact Name: ");
                 string phone = getStringInput("Enter Phone Number: ");
-                string relation = getStringInput("Enter Relationship (e.g. Family, Friend, Doctor): ");
+                string relation = getStringInput("Enter Relationship (e.g. Family, Friend, Campus Security): ");
 
-                Contact newContact(id, name, phone, relation);
+                cout << "Select Contact Priority Level:" << endl;
+                cout << "  1. Priority 1 (Primary Contact)" << endl;
+                cout << "  2. Priority 2 (Secondary Contact)" << endl;
+                cout << "  3. Priority 3 (Emergency / Campus Security Contact)" << endl;
+                int priority = 0;
+                while (priority < 1 || priority > 3) {
+                    priority = getIntInput("Enter Priority Level (1-3): ");
+                    if (priority < 1 || priority > 3) {
+                        cout << "  [Error] Priority level must be 1, 2, or 3. Please try again.\n";
+                    }
+                }
+
+                Contact newContact(id, name, phone, relation, priority);
                 safetySystem.registerContact(newContact);
                 cout << "Contact successfully registered.\n" << endl;
                 break;
@@ -256,6 +289,108 @@ int main() {
             }
 
             case 19: {
+                // Confirm User Safety
+                cout << "\n--- [19] Confirm User Safety ---" << endl;
+                if (!safetySystem.hasActiveVerification()) {
+                    cout << "  (No active safety verification requests pending)\n" << endl;
+                } else {
+                    safetySystem.displayPendingVerifications();
+                    int reqID = getIntInput("Enter Request ID to confirm safe (or 0 for active request): ");
+                    safetySystem.confirmUserSafe(reqID);
+                }
+                break;
+            }
+
+            case 20: {
+                // Request Immediate Help
+                cout << "\n--- [20] Request Immediate Help ---" << endl;
+                if (!safetySystem.hasActiveVerification()) {
+                    cout << "  (No active safety verification requests pending)\n" << endl;
+                } else {
+                    safetySystem.displayPendingVerifications();
+                    int reqID = getIntInput("Enter Request ID to request help (or 0 for active request): ");
+                    safetySystem.requestImmediateHelp(reqID);
+                }
+                break;
+            }
+
+            case 21: {
+                // View Pending Verification Requests
+                cout << "\n--- [21] View Pending Verification Requests ---" << endl;
+                safetySystem.displayPendingVerifications();
+                break;
+            }
+
+            case 22: {
+                // View Verification Statistics
+                cout << "\n--- [22] View Verification Statistics ---" << endl;
+                safetySystem.displayVerificationStatistics();
+                break;
+            }
+
+            case 23: {
+                // View Active Emergencies & Incidents
+                cout << "\n--- [23] View Active Emergencies & Incidents ---" << endl;
+                safetySystem.displayActiveIncidents();
+                break;
+            }
+
+            case 24: {
+                // Acknowledge Incident (by Emergency Contact)
+                cout << "\n--- [24] Acknowledge Incident (Emergency Contact) ---" << endl;
+                safetySystem.displayActiveIncidents();
+                int incID = getIntInput("Enter Incident ID to acknowledge: ");
+                int contactID = getIntInput("Enter Contact ID acknowledging the incident: ");
+                string timeStr = getStringInput("Enter Acknowledgement Timestamp (HH:MM or HH:MM:SS): ");
+                safetySystem.acknowledgeIncident(incID, contactID, timeStr);
+                break;
+            }
+
+            case 25: {
+                // Resolve Incident
+                cout << "\n--- [25] Resolve Incident ---" << endl;
+                safetySystem.displayActiveIncidents();
+                int incID = getIntInput("Enter Incident ID to resolve: ");
+                string notes = getStringInput("Enter Resolution Notes (e.g. User confirmed safe by responder): ");
+                string timeStr = getStringInput("Enter Resolution Timestamp (HH:MM or HH:MM:SS): ");
+                safetySystem.resolveIncident(incID, notes, timeStr);
+                break;
+            }
+
+            case 26: {
+                // Cancel Incident (False Alarm)
+                cout << "\n--- [26] Cancel Incident (False Alarm) ---" << endl;
+                safetySystem.displayActiveIncidents();
+                int incID = getIntInput("Enter Incident ID to cancel: ");
+                string reason = getStringInput("Enter Cancellation Reason (e.g. Accidental distress trigger): ");
+                string timeStr = getStringInput("Enter Cancellation Timestamp (HH:MM or HH:MM:SS): ");
+                safetySystem.cancelIncident(incID, reason, timeStr);
+                break;
+            }
+
+            case 27: {
+                // View Complete Incident History
+                cout << "\n--- [27] View Complete Incident History ---" << endl;
+                safetySystem.displayIncidentHistory();
+                break;
+            }
+
+            case 28: {
+                // View Dispatch & Notification Audit Trail
+                cout << "\n--- [28] View Dispatch & Notification Audit Trail ---" << endl;
+                int incID = getIntInput("Enter Incident ID to view notifications (or 0 for all): ");
+                safetySystem.displayNotificationHistory(incID);
+                break;
+            }
+
+            case 29: {
+                // View Incident & Response Statistics
+                cout << "\n--- [29] View Incident & Response Statistics ---" << endl;
+                safetySystem.displayIncidentStatistics();
+                break;
+            }
+
+            case 30: {
                 // Exit
                 cout << "\nThank you for using SafeSignal. Shutting down system safely. Goodbye!" << endl;
                 running = false;
@@ -263,7 +398,7 @@ int main() {
             }
 
             default: {
-                cout << "\n[Error] Invalid selection (" << choice << "). Please choose an option between 1 and 19.\n" << endl;
+                cout << "\n[Error] Invalid selection (" << choice << "). Please choose an option between 1 and 30.\n" << endl;
                 break;
             }
         }
