@@ -1,28 +1,31 @@
-
 #ifndef CONTACT_H
 #define CONTACT_H
 
+#include <iostream>
 #include <string>
+
+using namespace std;
 
 class Contact {
 private:
     int contactID;
-    std::string name;
-    std::string phoneNumber;
-    std::string relationship;
+    string name;
+    string phoneNumber;
+    string relationship;
 
 public:
     Contact();
-
-    Contact(int id, std::string n,
-            std::string phone, std::string relation);
-
+    Contact(int id, string n, string phone, string relation);
     ~Contact();
 
+    // Getter functions
     int getContactID() const;
-    std::string getName() const;
-    std::string getPhoneNumber() const;
-    std::string getRelationship() const;
+    string getName() const;
+    string getPhoneNumber() const;
+    string getRelationship() const;
+
+    // Display function
+    void displayContact() const;
 };
 
-#endif
+#endif // CONTACT_H

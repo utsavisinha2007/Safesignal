@@ -1,28 +1,34 @@
-
 #ifndef EVENT_H
 #define EVENT_H
 
+#include <iostream>
 #include <string>
+
+using namespace std;
 
 class Event {
 private:
     int eventID;
-    std::string eventType;
-    std::string location;
-    std::string timestamp;
+    string eventType;
+    string location;
+    string timestamp;
 
 public:
     Event();
-
-    Event(int id, std::string type,
-          std::string loc, std::string time);
-
+    Event(int id, string type, string loc, string time);
     ~Event();
 
+    // Getter functions
     int getEventID() const;
-    std::string getEventType() const;
-    std::string getLocation() const;
-    std::string getTimestamp() const;
+    string getEventType() const;
+    string getLocation() const;
+    string getTimestamp() const;
+
+    // Helper to evaluate severity weight based on event type
+    int getSeverityWeight() const;
+
+    // Display function
+    void displayEvent() const;
 };
 
-#endif
+#endif // EVENT_H

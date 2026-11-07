@@ -1,24 +1,34 @@
 #ifndef INCIDENT_H
 #define INCIDENT_H
 
+#include <iostream>
 #include <string>
+
+using namespace std;
 
 class Incident {
 private:
     int incidentID;
-    std::string description;
-    std::string location;
-    int severity;
+    string description;
+    string location;
+    int severity; // Severity scale: 1 (Low) to 5 (Critical)
 
 public:
     Incident();
-    Incident(int id, std::string desc, std::string loc, int sev);
+    Incident(int id, string desc, string loc, int sev);
     ~Incident();
 
+    // Getter functions
     int getIncidentID() const;
-    std::string getDescription() const;
-    std::string getLocation() const;
+    string getDescription() const;
+    string getLocation() const;
     int getSeverity() const;
+
+    // Overload '<' operator for Priority Queue ordering (higher severity = higher priority)
+    bool operator<(const Incident& other) const;
+
+    // Display function
+    void displayIncident() const;
 };
 
-#endif
+#endif // INCIDENT_H
