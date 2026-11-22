@@ -1,7 +1,13 @@
-const API_BASE = '/api';
+// Normalizes VITE_API_BASE_URL to cleanly support both local proxy ('/api')
+// and remote cloud deployments (e.g. 'https://safesignal.onrender.com' or 'https://safesignal.onrender.com/api')
+let rawBase = (import.meta.env.VITE_API_BASE_URL || '/api').trim();
+rawBase = rawBase.replace(/\/+$/, '');
+const API_BASE = rawBase.endsWith('/api') ? rawBase : (rawBase === '' ? '/api' : `${rawBase}/api`);
 
 async function request(endpoint, options = {}) {
-  const url = `${API_BASE}${endpoint}`;
+  // Ensure endpoint starts with a slash
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE}${cleanEndpoint}`;
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {})

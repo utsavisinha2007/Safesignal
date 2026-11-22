@@ -2,16 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-body { font-family: 'Inter', system-ui, sans-serif; }
+@layer base {
+  body {
+    @apply bg-[#080B14] text-[#F8FAFC] antialiased selection:bg-violet-600/30 selection:text-violet-200;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Custom dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #080B14;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(167, 139, 250, 0.4);
+  }
+}
 
 @layer components {
-  .card { @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6; }
-  .btn-primary { @apply px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed; }
-  .btn-danger { @apply px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-all duration-200 shadow-sm; }
-  .btn-safe { @apply px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all duration-200 shadow-sm; }
-  .btn-outline { @apply px-5 py-2.5 border-2 border-gray-200 hover:border-violet-300 text-gray-700 font-medium rounded-xl transition-all duration-200 hover:bg-violet-50; }
-  .input-field { @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none transition-all duration-200 text-sm; }
-  .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
-  .page-title { @apply text-2xl font-bold text-gray-900 mb-1; }
-  .page-subtitle { @apply text-sm text-gray-500 mb-6; }
+  /* Command Centre Surface Cards */
+  .cmd-card {
+    @apply bg-[#111827] border border-[rgba(148,163,184,0.14)] rounded-2xl p-6 shadow-cmd-card transition-all duration-200;
+  }
+
+  .cmd-card:hover {
+    border-color: rgba(167, 139, 250, 0.25);
+  }
+
+  .cmd-card-elevated {
+    @apply bg-[#172033] border border-[rgba(148,163,184,0.16)] rounded-xl p-4 transition-all duration-200;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply px-4 py-2.5 bg-violet-600 hover:bg-violet-500 active:scale-[0.98] text-white font-semibold rounded-xl transition-all duration-150 shadow-md shadow-violet-950/50 border border-violet-400/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-violet-600;
+  }
+
+  .btn-danger {
+    @apply px-4 py-2.5 bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white font-semibold rounded-xl transition-all duration-150 shadow-md shadow-rose-950/60 border border-rose-400/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-safe {
+    @apply px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-semibold rounded-xl transition-all duration-150 shadow-md shadow-emerald-950/60 border border-emerald-400/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply px-4 py-2.5 bg-[#172033]/80 hover:bg-[#172033] active:scale-[0.98] border border-[rgba(148,163,184,0.2)] hover:border-violet-400/50 text-slate-200 font-medium rounded-xl transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Form Inputs */
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl bg-[#0D1220] border border-[rgba(148,163,184,0.18)] text-slate-100 placeholder-slate-500 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/50 outline-none transition-all duration-150 text-sm;
+  }
+
+  /* Typography */
+  .page-title {
+    @apply text-2xl font-extrabold text-[#F8FAFC] tracking-tight;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-[#94A3B8] mt-1;
+  }
+
+  /* Badges */
+  .cmd-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border;
+  }
 }

@@ -22,6 +22,10 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // Command center layout states
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   const fetchGlobalState = useCallback(async () => {
     try {
       setRefreshing(true);
@@ -50,43 +54,53 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50 flex flex-col text-gray-900">
+      <div className="min-h-screen bg-cmd-bg text-cmd-text flex flex-col font-sans selection:bg-cmd-primary/30 selection:text-white antialiased">
+        {/* Compliance / Simulated Telemetry Banner */}
         <DisclosureBanner />
 
-        {/* Server Connection Disconnection Notice */}
+        {/* Server Disconnection Notice (Command Center Alert Banner) */}
         {!serverConnected && !initialLoading && (
-          <div className="bg-red-600 text-white px-4 py-2.5 text-xs font-semibold flex items-center justify-between shadow-md">
+          <div className="bg-cmd-critical/15 border-b border-cmd-critical/40 text-rose-300 px-4 py-2.5 text-xs font-mono flex items-center justify-between shadow-lg backdrop-blur-sm z-30">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 animate-bounce" />
+              <AlertCircle className="w-4 h-4 text-cmd-critical animate-pulse" />
               <span>
-                C++ REST API Server Disconnected (127.0.0.1:8080). Please ensure <code>SafeSignalServer.exe</code> is running.
+                <strong className="text-rose-200">REST API OFFLINE:</strong> C++ Engine unreachable at <code>{import.meta.env.VITE_API_BASE_URL || '127.0.0.1:8080'}</code>. Ensure <code>SafeSignalServer</code> is running.
               </span>
             </div>
             <button
               onClick={fetchGlobalState}
-              className="px-3 py-1 bg-white text-red-700 rounded-lg text-xs font-bold hover:bg-red-50 flex items-center gap-1"
+              className="px-2.5 py-1 bg-cmd-critical/20 hover:bg-cmd-critical/30 text-rose-200 rounded border border-cmd-critical/40 text-xs font-bold flex items-center gap-1.5 transition-all"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Retry Connection
+              <RefreshCw className="w-3 h-3 text-rose-300" />
+              <span>Retry Link</span>
             </button>
           </div>
         )}
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* Collapsible Command Center Sidebar */}
           <Sidebar
+            collapsed={collapsed}
+            setCollapsed={setCollapsed}
+            mobileOpen={mobileOpen}
+            setMobileOpen={setMobileOpen}
             activeVerification={status?.hasActiveVerification}
             activeIncidents={status?.activeIncidentCount}
+            serverConnected={serverConnected}
           />
 
           <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            {/* Command Center Top Navigation Bar */}
             <Navbar
               status={status}
               onRefresh={fetchGlobalState}
               refreshing={refreshing}
               serverConnected={serverConnected}
+              toggleSidebar={() => setCollapsed((prev) => !prev)}
+              setMobileOpen={setMobileOpen}
             />
 
-            <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
+            <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
               <Routes>
                 <Route
                   path="/"

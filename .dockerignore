@@ -1,0 +1,15 @@
+.git
+.github
+.gemini
+node_modules
+web/node_modules
+web/dist
+*.exe
+*.o
+*.obj
+*.dll
+*.pdb
+build/
+SafeSignalServer.exe
+SafeSignal.exe
+SafeSignal_app.exe
