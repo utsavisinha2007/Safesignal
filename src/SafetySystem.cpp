@@ -19,8 +19,34 @@ void SafetySystem::logEvent(const Event& event) {
     cout << "\n--- [SafetySystem] Ingesting New Event ---" << endl;
     riskAnalyzer.addEvent(event);
 
-    // Evaluate risk state (Concerning / High Risk when score >= 50)
-    if (riskAnalyzer.isRiskHigh()) {
+    // Check if an emergency incident is actively in dispatch / awaiting acknowledgement
+    bool activelyDispatching = false;
+    for (const auto& inc : responseManager.getActiveIncidents()) {
+        if (inc.getStatus() == INC_DISPATCHING || inc.getStatus() == INC_AWAITING_ACKNOWLEDGEMENT) {
+            activelyDispatching = true;
+            break;
+        }
+    }
+
+    if (activelyDispatching) {
+        cout << "  [SafetySystem Notice] Emergency dispatch actively in progress. Event recorded in risk history." << endl;
+        return;
+    }
+
+    bool isCritical = (event.getEventType() == "SOS" ||
+                       event.getEventType() == "Panic Button" ||
+                       event.getEventType() == "Fall Detected" ||
+                       event.getEventType() == "Impact" ||
+                       event.getSeverityWeight() >= 30);
+
+    // If this is a critical event and there is no active pending verification request,
+    // it must bypass any prior safe-confirmation blackout latch!
+    if (isCritical && !verificationManager.hasActivePendingRequest()) {
+        activeVerificationEpisode = false;
+    }
+
+    // Evaluate risk state (Concerning / High Risk when score >= 50, or critical distress event)
+    if (riskAnalyzer.isRiskHigh() || (isCritical && !verificationManager.hasActivePendingRequest())) {
         if (!activeVerificationEpisode) {
             int currentScore = riskAnalyzer.calculateRiskScore();
             string currentLevel = riskAnalyzer.getRiskLevel();
@@ -85,12 +111,19 @@ bool SafetySystem::startJourney(const string& startLoc, const string& dest,
 // If a deviation is detected, the generated Event is automatically passed to logEvent().
 void SafetySystem::updateJourneyLocation(const string& currentLocation, const string& timestamp) {
     cout << "\n--- [SafetySystem] Processing Journey Location Update ---" << endl;
+    bool wasActive = journeyManager.isActive();
     Event deviationEvent;
     bool deviationDetected = journeyManager.updateLocation(currentLocation, timestamp, deviationEvent);
 
     if (deviationDetected) {
         cout << "  [SafetySystem ALERT] Route deviation reported by JourneyManager! Forwarding to RiskAnalyzer..." << endl;
         logEvent(deviationEvent);
+    }
+
+    // When a journey naturally completes at its destination, clear its associated check-ins
+    if (wasActive && !journeyManager.isActive()) {
+        cout << "  [SafetySystem] Journey naturally completed at destination. Clearing associated check-ins." << endl;
+        checkInManager.clearCheckIns();
     }
 }
 
@@ -287,12 +320,32 @@ bool SafetySystem::acknowledgeIncident(int incidentID, int contactID, const stri
 
 bool SafetySystem::resolveIncident(int incidentID, const string& notes, const string& timestamp) {
     cout << "\n--- [SafetySystem] Resolving Incident ---" << endl;
-    return responseManager.resolveIncident(incidentID, notes, timestamp);
+    bool ok = responseManager.resolveIncident(incidentID, notes, timestamp);
+    if (ok) {
+        // If no other active incidents remain, reconcile escalation latch
+        if (!responseManager.hasActiveIncidents()) {
+            activeRiskEscalated = false;
+            if (!verificationManager.hasActivePendingRequest()) {
+                activeVerificationEpisode = false;
+            }
+        }
+    }
+    return ok;
 }
 
 bool SafetySystem::cancelIncident(int incidentID, const string& reason, const string& timestamp) {
     cout << "\n--- [SafetySystem] Cancelling Incident ---" << endl;
-    return responseManager.cancelIncident(incidentID, reason, timestamp);
+    bool ok = responseManager.cancelIncident(incidentID, reason, timestamp);
+    if (ok) {
+        // If no other active incidents remain, reconcile escalation latch
+        if (!responseManager.hasActiveIncidents()) {
+            activeRiskEscalated = false;
+            if (!verificationManager.hasActivePendingRequest()) {
+                activeVerificationEpisode = false;
+            }
+        }
+    }
+    return ok;
 }
 
 void SafetySystem::displayActiveIncidents() const {
@@ -339,6 +392,21 @@ void SafetySystem::displayCheckInStatistics() const {
 // Returns a const reference to the internal RiskAnalyzer for testing/inspection
 const RiskAnalyzer& SafetySystem::getRiskAnalyzer() const {
     return riskAnalyzer;
+}
+
+// Returns a const reference to the internal JourneyManager
+const JourneyManager& SafetySystem::getJourneyManager() const {
+    return journeyManager;
+}
+
+// Returns a const reference to the internal CheckInManager
+const CheckInManager& SafetySystem::getCheckInManager() const {
+    return checkInManager;
+}
+
+// Returns true if a journey is currently active
+bool SafetySystem::hasActiveJourney() const {
+    return journeyManager.isActive();
 }
 
 // Displays detailed risk analysis diagnostics

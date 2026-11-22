@@ -438,6 +438,15 @@ int RiskAnalyzer::getEventCount() const {
     return static_cast<int>(eventWindow.size());
 }
 
+vector<Event> RiskAnalyzer::getRecentEvents() const {
+    vector<Event> events;
+    events.reserve(eventWindow.size());
+    for (const auto& item : eventWindow) {
+        events.push_back(item.event);
+    }
+    return events;
+}
+
 void RiskAnalyzer::clearEvents() {
     eventWindow.clear();
     currentTimelineSeconds = -1;

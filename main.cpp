@@ -20,7 +20,7 @@ int getIntInput(const string& prompt) {
             return value;
         } else {
             if (cin.eof()) {
-                return 30; // Safely trigger exit on end-of-file
+                return 0; // Safely return 0 on end-of-file
             }
             cout << "  [Error] Invalid numeric input. Please enter an integer.\n";
             cin.clear();
@@ -30,13 +30,13 @@ int getIntInput(const string& prompt) {
 }
 
 // Helper function to safely read a line of text
-string getStringInput(const string& prompt) {
+string getStringInput(const string& prompt, bool allowEmpty = false) {
     string value;
     cout << prompt;
     if (!getline(cin, value)) {
         if (cin.eof()) return "";
     }
-    while (value.empty()) {
+    while (value.empty() && !allowEmpty) {
         if (cin.eof()) return "";
         cout << "  [Error] Input cannot be empty. Please re-enter: ";
         if (!getline(cin, value)) {
@@ -46,23 +46,420 @@ string getStringInput(const string& prompt) {
     return value;
 }
 
-int main() {
-    // Instantiate the primary SafetySystem coordinator
-    SafetySystem safetySystem;
+// ============================================================================
+// USER MODE (Friendly, Non-Technical Interface)
+// ============================================================================
 
-    // Display Welcome Screen
+void handleUserJourney(SafetySystem& safetySystem) {
+    cout << "\n==========================================================" << endl;
+    cout << "               START OR MANAGE A SAFE JOURNEY             " << endl;
     cout << "==========================================================" << endl;
-    cout << "       WELCOME TO SAFESIGNAL - SAFETY MANAGEMENT SYSTEM   " << endl;
-    cout << "    A C++ Data Structures & Algorithms Safety Platform    " << endl;
+    cout << "  SafeSignal monitors your route checkpoints. If you      " << endl;
+    cout << "  deviate, miss a check-in, or trigger distress, alerts   " << endl;
+    cout << "  are automatically sent to your emergency contacts.      " << endl;
+    cout << "  (Note: GPS tracking and alerts are simulated)           " << endl;
     cout << "==========================================================" << endl;
-    cout << "  Features: Queue-based Event Analysis, Priority Queue    " << endl;
-    cout << "  Emergency Triage, Vector-based Contact Directory,       " << endl;
-    cout << "  Journey Route Deviation Monitoring, Scheduled Safety    " << endl;
-    cout << "  Check-in Tracking, and Verification Timeout Management. " << endl;
-    cout << "  (Note: Emergency dispatches, location, and time updates " << endl;
-    cout << "   are simulated for demonstration and testing)           " << endl;
+
+    if (safetySystem.hasActiveJourney()) {
+        cout << "\n[Status] You currently have an active journey in progress!\n" << endl;
+        safetySystem.displayJourneyDetails();
+
+        cout << "\nJourney Options:" << endl;
+        cout << "  1. Update Current Location (Simulated GPS step)" << endl;
+        cout << "  2. End Journey Safely (Arrived at Destination)" << endl;
+        cout << "  3. Return to Main Menu" << endl;
+
+        int jChoice = getIntInput("Select an option (1-3): ");
+        if (jChoice == 1) {
+            cout << "\n--- Update Your Location ---" << endl;
+            string loc = getStringInput("Enter your current location (e.g., Campus Library): ");
+            string timeStr = getStringInput("Enter current time (HH:MM or HH:MM:SS): ");
+            safetySystem.updateJourneyLocation(loc, timeStr);
+        } else if (jChoice == 2) {
+            cout << "\n--- Ending Active Journey ---" << endl;
+            safetySystem.endJourney();
+            cout << "  Glad you arrived safely! Your journey and associated check-ins have ended.\n" << endl;
+        }
+        return;
+    }
+
+    // Starting a new journey
+    cout << "\n--- Plan a New Safe Journey ---" << endl;
+    string startLoc = getStringInput("Where are you starting from? (e.g. Student Union): ");
+    string dest = getStringInput("Where is your destination? (e.g. Dormitory B): ");
+    string eta = getStringInput("Estimated Arrival Time (HH:MM or HH:MM:SS): ");
+
+    int numCheckpoints = 0;
+    while (numCheckpoints <= 0) {
+        numCheckpoints = getIntInput("How many route checkpoints/milestones along the way? (e.g. 2): ");
+        if (numCheckpoints <= 0) {
+            cout << "  [Notice] Please enter at least 1 checkpoint along your path.\n";
+        }
+    }
+
+    vector<string> route;
+    cout << "Enter the " << numCheckpoints << " planned route checkpoints in order:" << endl;
+    for (int i = 0; i < numCheckpoints; i++) {
+        string cp = getStringInput("  Checkpoint #" + to_string(i + 1) + ": ");
+        route.push_back(cp);
+    }
+
+    bool started = safetySystem.startJourney(startLoc, dest, eta, route);
+    if (started) {
+        cout << "\n[Success] Your journey has started! SafeSignal is now protecting your route." << endl;
+        cout << "Would you like to schedule an initial safety check-in for this trip? (1 for Yes, 2 for No): ";
+        int checkInChoice = getIntInput("");
+        if (checkInChoice == 1) {
+            string schedTime = getStringInput("Enter check-in time (HH:MM or HH:MM:SS): ");
+            string desc = getStringInput("Enter note/purpose (e.g. Midpoint walk check): ");
+            string loc = getStringInput("Enter expected location: ", true);
+            if (loc.empty()) loc = startLoc;
+            int cid = safetySystem.scheduleCheckIn(schedTime, desc, loc);
+            if (cid > 0) {
+                cout << "  [Success] Safety Check-in #" << cid << " scheduled for " << schedTime << ".\n" << endl;
+            }
+        }
+    }
+}
+
+void handleUserContacts(SafetySystem& safetySystem) {
+    cout << "\n==========================================================" << endl;
+    cout << "                  MY EMERGENCY CONTACTS                   " << endl;
+    cout << "==========================================================" << endl;
+    cout << "  Your contacts are alerted based on priority tiers:      " << endl;
+    cout << "  - Priority 1 (Primary): Family / Roommate (Notified 1st)" << endl;
+    cout << "  - Priority 2 (Secondary): Trusted Friends (Notified 2nd)" << endl;
+    cout << "  - Priority 3 (Security): Campus Police / Emergency Desk " << endl;
+    cout << "==========================================================" << endl;
+
+    safetySystem.displayRegisteredContacts();
+
+    cout << "\nContact Options:" << endl;
+    cout << "  1. Add a New Emergency Contact" << endl;
+    cout << "  2. Return to Main Menu" << endl;
+
+    int choice = getIntInput("Select an option (1-2): ");
+    if (choice == 1) {
+        cout << "\n--- Add New Emergency Contact ---" << endl;
+        int id = getIntInput("Enter Contact ID (e.g. 101): ");
+        string name = getStringInput("Enter Contact Name: ");
+        string phone = getStringInput("Enter Phone Number: ");
+        string relation = getStringInput("Enter Relationship (e.g. Mother, Roommate, Campus Police): ");
+
+        cout << "Select Priority Level:" << endl;
+        cout << "  1. Primary Contact (Notified immediately upon emergency)" << endl;
+        cout << "  2. Secondary Contact (Notified if primary does not acknowledge)" << endl;
+        cout << "  3. Emergency Services / Campus Security" << endl;
+        int priority = 0;
+        while (priority < 1 || priority > 3) {
+            priority = getIntInput("Enter Priority (1-3): ");
+            if (priority < 1 || priority > 3) {
+                cout << "  [Notice] Priority must be 1, 2, or 3.\n";
+            }
+        }
+
+        Contact newContact(id, name, phone, relation, priority);
+        safetySystem.registerContact(newContact);
+        cout << "\n[Success] Emergency contact \"" << name << "\" successfully added!\n" << endl;
+    }
+}
+
+void handleUserCheckIns(SafetySystem& safetySystem) {
+    cout << "\n==========================================================" << endl;
+    cout << "                     SAFETY CHECK-INS                     " << endl;
+    cout << "==========================================================" << endl;
+    cout << "  Check-ins ensure someone knows you are safe at set      " << endl;
+    cout << "  times. If a check-in is missed (plus 5-min grace period)" << endl;
+    cout << "  an automated safety verification is triggered.          " << endl;
+    cout << "==========================================================" << endl;
+
+    safetySystem.displayScheduledCheckIns();
+
+    cout << "\nCheck-in Options:" << endl;
+    cout << "  1. Confirm / Complete a Check-in (\"I'm Safe!\")" << endl;
+    cout << "  2. Schedule a New Check-in (During Active Journey)" << endl;
+    cout << "  3. Advance Simulated Clock (Simulate Time Passing)" << endl;
+    cout << "  4. View Check-in Statistics" << endl;
+    cout << "  5. Return to Main Menu" << endl;
+
+    int choice = getIntInput("Select an option (1-5): ");
+    switch (choice) {
+        case 1: {
+            cout << "\n--- Confirm Safety Check-in ---" << endl;
+            int cid = getIntInput("Enter Check-in ID to confirm: ");
+            bool ok = safetySystem.completeCheckIn(cid);
+            if (ok) {
+                cout << "  [Success] Check-in #" << cid << " confirmed! Your contacts know you are safe.\n" << endl;
+            }
+            break;
+        }
+        case 2: {
+            if (!safetySystem.hasActiveJourney()) {
+                cout << "\n[Notice] Check-ins can only be scheduled during an active journey." << endl;
+                cout << "Please start a journey first from Option 1 in the Main Menu.\n" << endl;
+                break;
+            }
+            cout << "\n--- Schedule a Safety Check-in ---" << endl;
+            string schedTime = getStringInput("Enter Check-in Time (HH:MM or HH:MM:SS): ");
+            string desc = getStringInput("Enter Note / Purpose (e.g. Crossing Park): ");
+            string loc = getStringInput("Enter Expected Location (or leave blank): ", true);
+            if (loc.empty()) loc = "Current Route";
+            int cid = safetySystem.scheduleCheckIn(schedTime, desc, loc);
+            if (cid > 0) {
+                cout << "  [Success] Check-in #" << cid << " scheduled for " << schedTime << ".\n" << endl;
+            }
+            break;
+        }
+        case 3: {
+            cout << "\n--- Advance Simulated Time ---" << endl;
+            cout << "Simulating time lets you test deadline triggers and grace periods.\n";
+            string currTime = getStringInput("Enter Simulated Current Time (HH:MM or HH:MM:SS): ");
+            safetySystem.processCurrentTimeUpdate(currTime);
+            break;
+        }
+        case 4: {
+            safetySystem.displayCheckInStatistics();
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void handleUserSafetyStatus(SafetySystem& safetySystem) {
+    cout << "\n==========================================================" << endl;
+    cout << "                    MY SAFETY STATUS                      " << endl;
+    cout << "==========================================================" << endl;
+
+    // Check if safety verification is pending
+    if (safetySystem.hasActiveVerification()) {
+        cout << "\n  ********************************************************" << endl;
+        cout << "  🚨 ACTION NEEDED: SAFETY VERIFICATION REQUEST PENDING!  " << endl;
+        cout << "  ********************************************************" << endl;
+        cout << "  SafeSignal detected an unusual safety situation and is   " << endl;
+        cout << "  checking on your safety. Please respond below!           " << endl;
+        cout << "  ********************************************************\n" << endl;
+
+        safetySystem.displayPendingVerifications();
+
+        cout << "\nVerification Response:" << endl;
+        cout << "  1. I Am Safe (False alarm / Cancel alert)" << endl;
+        cout << "  2. I Need Help! (Trigger immediate emergency dispatch)" << endl;
+        cout << "  3. Return to Menu" << endl;
+
+        int vChoice = getIntInput("Select your response (1-3): ");
+        if (vChoice == 1) {
+            safetySystem.confirmUserSafe();
+        } else if (vChoice == 2) {
+            safetySystem.requestImmediateHelp();
+        }
+        return;
+    }
+
+    // Normal safety overview
+    int riskScore = safetySystem.getRiskAnalyzer().calculateRiskScore();
+    string riskLevel = safetySystem.getRiskAnalyzer().getRiskLevel();
+
+    cout << "\nCurrent Safety Indicator:" << endl;
+    if (riskScore == 0) {
+        cout << "  [🟢 ALL CLEAR] SafeSignal is actively monitoring. No safety risks detected." << endl;
+    } else if (riskScore < 20) {
+        cout << "  [🟢 NORMAL] Risk Score: " << riskScore << "/100 (" << riskLevel << "). Everything appears normal." << endl;
+    } else if (riskScore < 50) {
+        cout << "  [🟡 CAUTION] Risk Score: " << riskScore << "/100 (" << riskLevel << "). Minor safety events recorded." << endl;
+    } else {
+        cout << "  [🔴 ELEVATED RISK] Risk Score: " << riskScore << "/100 (" << riskLevel << "). Safety alert threshold reached!" << endl;
+    }
+
+    cout << "\nSystem Summary:" << endl;
+    cout << "  Active Journey:      " << (safetySystem.hasActiveJourney() ? "UNDERWAY" : "None") << endl;
+    cout << "  Emergency Contacts:  " << safetySystem.getResponseManager().getContactCount() << " registered" << endl;
+    cout << "  Active Incidents:    " << safetySystem.getResponseManager().getActiveIncidentCount() << " in progress" << endl;
+
+    if (safetySystem.getResponseManager().hasActiveIncidents()) {
+        cout << "\nActive Emergency Details:" << endl;
+        safetySystem.displayActiveIncidents();
+    }
+
     cout << "==========================================================\n" << endl;
+}
 
+void handleUserEmergencyHelp(SafetySystem& safetySystem) {
+    cout << "\n==========================================================" << endl;
+    cout << "               🚨 REQUEST EMERGENCY HELP 🚨               " << endl;
+    cout << "==========================================================" << endl;
+    cout << "  This will immediately trigger an emergency alert to     " << endl;
+    cout << "  your designated emergency contacts and campus security  " << endl;
+    cout << "  based on priority tiers!                                " << endl;
+    cout << "  (Simulated dispatch for testing and student safety demo)" << endl;
+    cout << "==========================================================" << endl;
+
+    cout << "\nAre you sure you want to request immediate emergency assistance?" << endl;
+    cout << "  1. YES — SEND EMERGENCY HELP NOW" << endl;
+    cout << "  2. No — Cancel and return to menu" << endl;
+
+    int choice = getIntInput("Enter choice (1 or 2): ");
+    if (choice == 1) {
+        cout << "\n[ALERT] Activating One-Touch Emergency Dispatch..." << endl;
+        if (safetySystem.hasActiveVerification()) {
+            safetySystem.requestImmediateHelp();
+        } else {
+            // Log a direct SOS event which immediately escalates to emergency dispatch
+            string loc = "Current Location";
+            string timeStr = "12:00:00";
+            if (safetySystem.hasActiveJourney()) {
+                loc = safetySystem.getJourneyManager().getNextExpectedCheckpoint();
+                if (loc.empty()) loc = safetySystem.getJourneyManager().getDestination();
+            }
+            Event sosEvent(9999, "SOS", loc, timeStr);
+            safetySystem.logEvent(sosEvent);
+
+            // If a verification request was created, immediately request help for it
+            if (safetySystem.hasActiveVerification()) {
+                safetySystem.requestImmediateHelp();
+            }
+        }
+        cout << "\n[Notice] Emergency alert has been dispatched to your priority contacts!\n" << endl;
+    } else {
+        cout << "\nEmergency request cancelled. Returning to main menu.\n" << endl;
+    }
+}
+
+void handleUserActivityHistory(SafetySystem& safetySystem) {
+    cout << "\n==========================================================" << endl;
+    cout << "                 ACTIVITY & SAFETY HISTORY                " << endl;
+    cout << "==========================================================" << endl;
+    cout << "  1. View Recent Safety Events (Sliding Window Log)" << endl;
+    cout << "  2. View Safety Check-in Statistics & Status" << endl;
+    cout << "  3. View Verification Request Statistics" << endl;
+    cout << "  4. View Emergency Incidents & Audit Trail" << endl;
+    cout << "  5. Return to Main Menu" << endl;
+
+    int choice = getIntInput("Select an option (1-5): ");
+    switch (choice) {
+        case 1:
+            safetySystem.displayRecentEvents();
+            break;
+        case 2:
+            safetySystem.displayCheckInStatistics();
+            break;
+        case 3:
+            safetySystem.displayVerificationStatistics();
+            break;
+        case 4:
+            safetySystem.displayIncidentHistory();
+            safetySystem.displayIncidentStatistics();
+            break;
+        default:
+            break;
+    }
+}
+
+void handleUserSettings(SafetySystem& safetySystem) {
+    cout << "\n==========================================================" << endl;
+    cout << "                SETTINGS & SYSTEM CONTROLS                " << endl;
+    cout << "==========================================================" << endl;
+    cout << "  Active Safety Parameters:" << endl;
+    cout << "  - Safety Check-in Grace Period: 5 minutes" << endl;
+    cout << "  - Safety Verification Timeout:  3 minutes" << endl;
+    cout << "  - Contact Ack Timeout (Tiered): 2 minutes" << endl;
+    cout << "  - Risk Analysis Time Window:   10 minutes" << endl;
+    cout << "==========================================================" << endl;
+
+    cout << "\nControls:" << endl;
+    cout << "  1. Advance Simulated Clock (Simulate Time Passing)" << endl;
+    cout << "  2. Simulate Safety Sensor Event (Fall, Impact, Motion)" << endl;
+    cout << "  3. View Complete Technical System Status" << endl;
+    cout << "  4. Return to Main Menu" << endl;
+
+    int choice = getIntInput("Select an option (1-4): ");
+    switch (choice) {
+        case 1: {
+            string currTime = getStringInput("Enter Simulated Current Time (HH:MM or HH:MM:SS): ");
+            safetySystem.processCurrentTimeUpdate(currTime);
+            break;
+        }
+        case 2: {
+            cout << "\nSelect sensor event to simulate:" << endl;
+            cout << "  1. Fall Detected (High Severity)" << endl;
+            cout << "  2. Impact Detected (High Severity)" << endl;
+            cout << "  3. Motion Alert (Minor Event)" << endl;
+            cout << "  4. Custom Event" << endl;
+            int sChoice = getIntInput("Enter choice (1-4): ");
+            string type = "Fall Detected";
+            if (sChoice == 2) type = "Impact";
+            else if (sChoice == 3) type = "Motion Alert";
+            else if (sChoice == 4) type = getStringInput("Enter event type: ");
+
+            string loc = getStringInput("Enter location: ");
+            string timeStr = getStringInput("Enter timestamp (HH:MM or HH:MM:SS): ");
+            int id = getIntInput("Enter Event ID (e.g. 601): ");
+            Event ev(id, type, loc, timeStr);
+            safetySystem.logEvent(ev);
+            break;
+        }
+        case 3:
+            safetySystem.displaySystemStatus();
+            break;
+        default:
+            break;
+    }
+}
+
+void runUserMode(SafetySystem& safetySystem) {
+    bool inUserMode = true;
+    while (inUserMode && !cin.eof()) {
+        cout << "\n=================== SAFESIGNAL USER DASHBOARD ===================" << endl;
+        cout << "  1. Start a Safe Journey       (Route tracking & checkpoints)" << endl;
+        cout << "  2. My Emergency Contacts      (Manage primary & secondary contacts)" << endl;
+        cout << "  3. Safety Check-ins           (Confirm check-ins & schedule alerts)" << endl;
+        cout << "  4. My Safety Status           (Real-time safety overview & alarms)" << endl;
+        cout << "  5. Request Emergency Help     (One-Touch SOS distress trigger)" << endl;
+        cout << "  6. Activity History           (Timeline, past events & incidents)" << endl;
+        cout << "  7. Settings & Controls        (Clock simulation & sensor testing)" << endl;
+        cout << "  8. Exit User Mode             (Return to mode selector / exit)" << endl;
+        cout << "=================================================================" << endl;
+
+        int choice = getIntInput("Enter your choice (1-8): ");
+
+        switch (choice) {
+            case 1:
+                handleUserJourney(safetySystem);
+                break;
+            case 2:
+                handleUserContacts(safetySystem);
+                break;
+            case 3:
+                handleUserCheckIns(safetySystem);
+                break;
+            case 4:
+                handleUserSafetyStatus(safetySystem);
+                break;
+            case 5:
+                handleUserEmergencyHelp(safetySystem);
+                break;
+            case 6:
+                handleUserActivityHistory(safetySystem);
+                break;
+            case 7:
+                handleUserSettings(safetySystem);
+                break;
+            case 8:
+                cout << "\nExiting User Mode..." << endl;
+                inUserMode = false;
+                break;
+            default:
+                cout << "\n[Notice] Please select an option between 1 and 8.\n";
+                break;
+        }
+    }
+}
+
+// ============================================================================
+// DEMONSTRATION MODE (Full 30-Option Technical System Interface)
+// ============================================================================
+
+void runDemonstrationMode(SafetySystem& safetySystem) {
     int choice = 0;
     bool running = true;
 
@@ -251,7 +648,8 @@ int main() {
                 cout << "\n--- [14] Schedule a Safety Check-in ---" << endl;
                 string schedTime = getStringInput("Enter Scheduled Check-in Time (HH:MM or HH:MM:SS): ");
                 string desc = getStringInput("Enter Check-in Description/Note: ");
-                string loc = getStringInput("Enter Expected Location (or press Enter for 'Unknown'): ");
+                string loc = getStringInput("Enter Expected Location (or press Enter for 'Unknown'): ", true);
+                if (loc.empty()) loc = "Unknown";
 
                 int checkInID = safetySystem.scheduleCheckIn(schedTime, desc, loc);
                 if (checkInID > 0) {
@@ -392,7 +790,7 @@ int main() {
 
             case 30: {
                 // Exit
-                cout << "\nThank you for using SafeSignal. Shutting down system safely. Goodbye!" << endl;
+                cout << "\nExiting Demonstration Mode..." << endl;
                 running = false;
                 break;
             }
@@ -403,7 +801,51 @@ int main() {
             }
         }
     }
+}
+
+// ============================================================================
+// MAIN ENTRY POINT (Startup Mode Selector)
+// ============================================================================
+
+int main() {
+    // Instantiate the primary SafetySystem coordinator (shared across all modes)
+    SafetySystem safetySystem;
+
+    // Display Welcome Screen
+    cout << "==========================================================" << endl;
+    cout << "       WELCOME TO SAFESIGNAL - SAFETY MANAGEMENT SYSTEM   " << endl;
+    cout << "    A C++ Data Structures & Algorithms Safety Platform    " << endl;
+    cout << "==========================================================" << endl;
+    cout << "  Features: Queue-based Event Analysis, Priority Queue    " << endl;
+    cout << "  Emergency Triage, Vector-based Contact Directory,       " << endl;
+    cout << "  Journey Route Deviation Monitoring, Scheduled Safety    " << endl;
+    cout << "  Check-in Tracking, and Verification Timeout Management. " << endl;
+    cout << "  (Note: Emergency dispatches, location, and time updates " << endl;
+    cout << "   are simulated for demonstration and testing)           " << endl;
+    cout << "==========================================================\n" << endl;
+
+    bool appRunning = true;
+    while (appRunning && !cin.eof()) {
+        cout << "=================== SAFESIGNAL STARTUP MENU ===================" << endl;
+        cout << "  Please select an operation mode:" << endl;
+        cout << "  1. User Mode (Default - Intuitive, Friendly Interface)" << endl;
+        cout << "  2. Demonstration Mode (Complete Technical 30-Option System)" << endl;
+        cout << "  3. Exit Application" << endl;
+        cout << "===============================================================" << endl;
+
+        int modeChoice = getIntInput("Enter mode selection (1-3) [Default: 1]: ");
+
+        if (modeChoice == 1) {
+            runUserMode(safetySystem);
+        } else if (modeChoice == 2) {
+            runDemonstrationMode(safetySystem);
+        } else if (modeChoice == 3 || cin.eof()) {
+            cout << "\nThank you for using SafeSignal. Shutting down system safely. Goodbye!" << endl;
+            appRunning = false;
+        } else {
+            cout << "\n[Notice] Please select 1 for User Mode, 2 for Demonstration Mode, or 3 to Exit.\n" << endl;
+        }
+    }
 
     return 0;
 }
-

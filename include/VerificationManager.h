@@ -91,6 +91,7 @@ public:
 
     // Query operations
     vector<VerificationRequest> getPendingRequests() const;
+    vector<VerificationRequest> getAllRequests() const;
     bool getRequestByID(int requestID, VerificationRequest& outRequest) const;
     bool hasActivePendingRequest() const;
     int getActiveRequestID() const; // Returns the ID of the active PENDING request, or -1 if none

@@ -55,6 +55,7 @@ public:
     void registerContact(const Contact& contact);
     void displayContacts() const;
     int getContactCount() const;
+    const vector<Contact>& getAllContacts() const;
     vector<Contact> getContactsByPriority(int priority) const;
 
     // Incident creation & dispatch (Phase 1 / 4.4)

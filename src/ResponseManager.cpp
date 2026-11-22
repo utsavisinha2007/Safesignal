@@ -194,6 +194,10 @@ int ResponseManager::getContactCount() const {
     return static_cast<int>(contacts.size());
 }
 
+const vector<Contact>& ResponseManager::getAllContacts() const {
+    return contacts;
+}
+
 vector<Contact> ResponseManager::getContactsByPriority(int priority) const {
     vector<Contact> filtered;
     for (const auto& c : contacts) {

@@ -531,6 +531,147 @@ int main() {
         assertTest(sys.resolveIncident(777, "Resolved by responder", "09:05:00"), "Triaged manual incident resolved through lifecycle");
     }
 
+    // -------------------------------------------------------------
+    // SCENARIO 22 & 23: Critical Events After Safe Confirmation (Blackout Fix)
+    // -------------------------------------------------------------
+    cout << "\n--- Scenario 22 & 23: Critical Events After Safe Confirmation ---" << endl;
+    {
+        SafetySystem sys;
+        sys.registerContact(Contact(101, "Alice", "555-0101", "Family", 1));
+
+        // 1. Trigger episode with Route Deviation + Missed Check-in (score 65)
+        sys.logEvent(Event(1, "Route Deviation", "Path A", "10:00:00"));
+        sys.logEvent(Event(2, "Missed Check-in", "Path A", "10:04:00"));
+        assertTest(sys.hasActiveVerification(), "Verification request #5000 active");
+
+        // 2. User confirms safe
+        assertTest(sys.confirmUserSafe(), "User confirms safe for #5000");
+        assertTest(!sys.hasActiveVerification(), "No active verification after safe confirmation");
+
+        // 3. User immediately triggers SOS at 10:05:00 while risk score remains elevated (65 >= 50)
+        sys.logEvent(Event(3, "SOS", "Path A", "10:05:00"));
+        assertTest(sys.hasActiveVerification(), "SOS after safe confirmation NOT suppressed; initiates new verification");
+        int sosReqID = sys.getActiveVerificationID();
+        assertTest(sosReqID == 5001, "New verification request #5001 created for SOS");
+
+        // User requests immediate help on this new request
+        assertTest(sys.requestImmediateHelp(), "Immediate help requested for SOS request");
+        assertTest(sys.getResponseManager().hasActiveIncidents(), "Emergency incident created for SOS");
+        assertTest(!sys.hasActiveVerification(), "Verification closed upon immediate help request");
+
+        // Resolve the incident
+        sys.resolveIncident(9001, "Resolved", "10:10:00");
+        assertTest(!sys.getResponseManager().hasActiveIncidents(), "Incident resolved");
+
+        // 4. Test Fall Detected after another episode safe confirmation
+        sys.logEvent(Event(4, "Route Deviation", "Path B", "10:12:00"));
+        sys.logEvent(Event(5, "Missed Check-in", "Path B", "10:14:00"));
+        assertTest(sys.confirmUserSafe(), "Confirmed safe for second episode");
+        // Log Fall Detected
+        sys.logEvent(Event(6, "Fall Detected", "Path B", "10:15:00"));
+        assertTest(sys.hasActiveVerification(), "Fall Detected after safe confirmation NOT suppressed; initiates verification");
+    }
+
+    // -------------------------------------------------------------
+    // SCENARIO 24: Repeated SOS While Incident is Active
+    // -------------------------------------------------------------
+    cout << "\n--- Scenario 24: Repeated SOS While Incident is Active ---" << endl;
+    {
+        SafetySystem sys;
+        sys.registerContact(Contact(101, "Alice", "555-0101", "Family", 1));
+        Incident inc(9001, "Active Emergency", "Quad", 5, -1, 80, "High Risk", "11:00:00");
+        sys.getResponseManager().dispatchEmergency(inc, "11:00:00");
+        assertTest(sys.getResponseManager().hasActiveIncidents(), "Incident #9001 is active");
+
+        // User triggers repeated SOS
+        sys.logEvent(Event(10, "SOS", "Quad", "11:01:00"));
+        assertTest(!sys.hasActiveVerification(), "No conflicting verification request created while incident is active");
+        assertTest(sys.getRiskAnalyzer().getEventCount() >= 1, "SOS event preserved in risk history");
+
+        // User triggers Fall Detected
+        sys.logEvent(Event(11, "Fall Detected", "Quad", "11:02:00"));
+        assertTest(!sys.hasActiveVerification(), "No conflicting verification request for repeated fall while incident is active");
+    }
+
+    // -------------------------------------------------------------
+    // SCENARIO 25 & 26: Journey Forward Recovery & Destination Completion
+    // -------------------------------------------------------------
+    cout << "\n--- Scenario 25 & 26: Journey Forward Recovery & Destination Completion ---" << endl;
+    {
+        SafetySystem sys;
+        vector<string> route = {"Checkpoint 1", "Checkpoint 2", "Checkpoint 3", "Final Destination"};
+        sys.startJourney("Start", "Final Destination", "12:00:00", route);
+
+        // Advance to Checkpoint 1 on track
+        sys.updateJourneyLocation("Checkpoint 1", "11:10:00");
+
+        // Skip Checkpoint 2 and arrive directly at Checkpoint 3!
+        sys.updateJourneyLocation("Checkpoint 3", "11:30:00");
+        assertTest(sys.getRiskAnalyzer().getEventCount() == 1, "Route deviation logged for skipping Checkpoint 2");
+
+        // Now arrive at Final Destination!
+        sys.updateJourneyLocation("Final Destination", "11:50:00");
+
+        // Verify journey naturally completed at Final Destination (can start new journey immediately)
+        vector<string> r2 = {"A", "B"};
+        bool canStartNew = sys.startJourney("A", "B", "13:00:00", r2);
+        assertTest(canStartNew, "Journey naturally completed at Final Destination after skipped checkpoint (new journey can start)");
+        sys.endJourney();
+    }
+
+    // -------------------------------------------------------------
+    // SCENARIO 27: Check-in Cleanup on Natural Journey Completion
+    // -------------------------------------------------------------
+    cout << "\n--- Scenario 27: Check-in Cleanup on Natural Journey Completion ---" << endl;
+    {
+        SafetySystem sys;
+        vector<string> route = {"Gate", "Destination"};
+        sys.startJourney("Gate", "Destination", "14:00:00", route);
+        sys.scheduleCheckIn("13:50:00", "Midpoint", "Gate");
+
+        // Arrive at Gate
+        sys.updateJourneyLocation("Gate", "13:30:00");
+
+        // Reach Destination early at 13:40:00
+        sys.updateJourneyLocation("Destination", "13:40:00");
+
+        // Advance time to 13:56:00 (past 13:50:00 + 5m grace = 13:55:00)
+        sys.processCurrentTimeUpdate("13:56:00");
+
+        // Check-ins for the completed journey should have been cleaned up -> no missed check-in events!
+        assertTest(sys.getRiskAnalyzer().getEventCount() == 0, "No missed check-in events fired after natural journey completion");
+        assertTest(!sys.hasActiveVerification(), "No false verification triggered after natural journey completion");
+    }
+
+    // -------------------------------------------------------------
+    // SCENARIO 28 & 29: Multiple Incident Lifecycle & Cancellation
+    // -------------------------------------------------------------
+    cout << "\n--- Scenario 28 & 29: Multiple Incident Lifecycle & Cancellation ---" << endl;
+    {
+        SafetySystem sys;
+        sys.registerContact(Contact(101, "Alice", "555-0101", "Family", 1));
+
+        Incident inc1(1001, "Emergency 1", "Loc 1", 5, -1, 80, "High Risk", "14:00:00");
+        Incident inc2(1002, "Emergency 2", "Loc 2", 4, -1, 60, "Concerning", "14:01:00");
+        sys.getResponseManager().dispatchEmergency(inc1, "14:00:00");
+        sys.getResponseManager().dispatchEmergency(inc2, "14:01:00");
+        assertTest(sys.getResponseManager().getActiveIncidentCount() == 2, "Two active incidents");
+
+        // Resolve incident 1
+        assertTest(sys.resolveIncident(1001, "Loc 1 cleared", "14:10:00"), "Incident 1001 resolved");
+        assertTest(sys.getResponseManager().hasActiveIncidents(), "Incident 1002 remains active");
+        assertTest(sys.getResponseManager().getActiveIncidentCount() == 1, "Exactly one active incident remains");
+
+        // Cancel incident 2
+        assertTest(sys.cancelIncident(1002, "Loc 2 false alarm", "14:15:00"), "Incident 1002 cancelled");
+        assertTest(!sys.getResponseManager().hasActiveIncidents(), "No active incidents remain");
+
+        // Now system can handle fresh verification and emergencies cleanly
+        sys.logEvent(Event(100, "Route Deviation", "Loc 3", "14:20:00"));
+        sys.logEvent(Event(101, "Missed Check-in", "Loc 3", "14:24:00"));
+        assertTest(sys.hasActiveVerification(), "New verification triggered after all incidents resolved/cancelled");
+    }
+
     cout << "\n==========================================================" << endl;
     cout << "END-TO-END TEST SUMMARY: " << totalTestsPassed << " PASSED, "
          << totalTestsFailed << " FAILED" << endl;

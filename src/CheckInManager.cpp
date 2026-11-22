@@ -252,6 +252,11 @@ void CheckInManager::clearCheckIns() {
     checkIns.clear();
 }
 
+// Returns all check-in records
+const vector<CheckIn>& CheckInManager::getAllCheckIns() const {
+    return checkIns;
+}
+
 // Returns total number of registered check-in records
 int CheckInManager::getCheckInCount() const {
     return static_cast<int>(checkIns.size());

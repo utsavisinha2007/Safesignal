@@ -59,6 +59,7 @@ public:
     void clearCheckIns();
 
     // Inspection getters
+    const vector<CheckIn>& getAllCheckIns() const;
     int getCheckInCount() const;          // Total check-ins
     int getPendingCount() const;          // Pending check-ins (unconfirmed, not yet overdue)
     int getCompletedCount() const;        // On-time completed check-ins

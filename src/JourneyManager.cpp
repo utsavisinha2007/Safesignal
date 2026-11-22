@@ -83,10 +83,38 @@ bool JourneyManager::updateLocation(const string& currentLocation, const string&
         return false;
     }
 
-    // Case 2: Location does not match expected checkpoint -> Route deviation detected
+    // Case 2: Location does not match expected checkpoint.
+    // Check forward lookahead: did the user skip ahead to an upcoming checkpoint on the route?
+    size_t lookaheadIndex = plannedRoute.size();
+    for (size_t i = currentCheckpointIndex + 1; i < plannedRoute.size(); i++) {
+        if (plannedRoute[i] == currentLocation) {
+            lookaheadIndex = i;
+            break; // Select the nearest upcoming checkpoint for repeated checkpoint names
+        }
+    }
+
     eventCounter++;
     outDeviationEvent = Event(eventCounter, "Route Deviation", currentLocation, timestamp);
 
+    if (lookaheadIndex < plannedRoute.size()) {
+        // Forward recovery: intermediate checkpoint(s) skipped, but user recovered on planned route
+        cout << "  [JourneyManager ALERT] Route Deviation (Skipped Checkpoints) with Forward Recovery!" << endl;
+        cout << "    Reported Location:   " << currentLocation << " (Matches Checkpoint " << (lookaheadIndex + 1) << ")" << endl;
+        cout << "    Expected Checkpoint: " << expected << " (Checkpoint " << (currentCheckpointIndex + 1) << ")" << endl;
+        cout << "    Skipped:             " << (lookaheadIndex - currentCheckpointIndex) << " checkpoint(s)" << endl;
+        cout << "    Generated Event #" << outDeviationEvent.getEventID()
+             << " (" << outDeviationEvent.getEventType() << ")" << endl;
+
+        // Advance route progress to the matched checkpoint + 1
+        currentCheckpointIndex = lookaheadIndex + 1;
+        if (currentCheckpointIndex >= plannedRoute.size()) {
+            cout << "  [JourneyManager] Destination reached successfully! Completing journey." << endl;
+            isJourneyActive = false;
+        }
+        return true;
+    }
+
+    // Case 3: Completely off-route location
     cout << "  [JourneyManager ALERT] Route Deviation Detected!" << endl;
     cout << "    Reported Location:   " << currentLocation << endl;
     cout << "    Expected Checkpoint: " << expected << endl;

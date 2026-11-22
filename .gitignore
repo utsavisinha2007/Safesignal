@@ -1,6 +1,24 @@
+# Compiled binaries & objects
 *.exe
 *.o
 *.obj
 *.dll
 *.pdb
 build/
+
+# Node.js & Frontend build artifacts
+node_modules/
+web/node_modules/
+dist/
+web/dist/
+.vite/
+web/.vite/
+
+# Logs & temp files
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE & Editor files
+.vscode/
+.idea/

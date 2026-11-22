@@ -77,6 +77,9 @@ public:
 
     // Accessors for testing and inspection
     const RiskAnalyzer& getRiskAnalyzer() const;
+    const JourneyManager& getJourneyManager() const;
+    const CheckInManager& getCheckInManager() const;
+    bool hasActiveJourney() const;
 
     // Dedicated display and inspection methods for menu operations
     void displayRiskAnalysis() const;

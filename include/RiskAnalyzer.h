@@ -84,6 +84,7 @@ public:
     void displayRecentEvents() const;
     void displayRiskBreakdown() const;
     int getEventCount() const;
+    vector<Event> getRecentEvents() const;
     void clearEvents();
     vector<string> getDetectedPatterns() const;
     string getLatestTimestamp() const;

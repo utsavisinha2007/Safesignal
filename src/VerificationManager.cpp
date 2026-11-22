@@ -330,6 +330,15 @@ vector<VerificationRequest> VerificationManager::getPendingRequests() const {
     return result;
 }
 
+vector<VerificationRequest> VerificationManager::getAllRequests() const {
+    vector<VerificationRequest> result;
+    result.reserve(requestMap.size());
+    for (const auto& pair : requestMap) {
+        result.push_back(pair.second);
+    }
+    return result;
+}
+
 bool VerificationManager::getRequestByID(int requestID, VerificationRequest& outRequest) const {
     auto it = requestMap.find(requestID);
     if (it != requestMap.end()) {
