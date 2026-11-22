@@ -60,7 +60,7 @@ USER safesignal
 # Default environment variables (Render automatically injects PORT at runtime)
 ENV HOST=0.0.0.0
 ENV PORT=8080
-ENV ALLOWED_ORIGIN=*
+ENV ALLOWED_ORIGIN=https://web-innovision7.vercel.app
 
 # Expose default listening port
 EXPOSE 8080
