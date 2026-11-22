@@ -1,32 +1,71 @@
-// Normalizes VITE_API_BASE_URL to cleanly support both local proxy ('/api')
-// and remote cloud deployments (e.g. 'https://safesignal.onrender.com' or 'https://safesignal.onrender.com/api')
-let rawBase = (import.meta.env.VITE_API_BASE_URL || '/api').trim();
-rawBase = rawBase.replace(/\/+$/, '');
-const API_BASE = rawBase.endsWith('/api') ? rawBase : (rawBase === '' ? '/api' : `${rawBase}/api`);
+// Resolve the API base URL from the Vite environment variable.
+// VITE_API_BASE_URL should be set to the full Render root URL, e.g.:
+//   https://safesignal-rc3b.onrender.com
+// The /api prefix is appended here automatically.
+// In local dev (no env var), falls back to the Vite proxy path '/api'.
+
+function buildApiBase() {
+  const raw = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '');
+
+  // No env var set → local dev mode, use Vite proxy ('/api' → localhost:8080/api)
+  if (!raw) return '/api';
+
+  // Guard: if the value is missing the protocol, it is a misconfiguration.
+  // Treat it as a relative path fragment to prevent silent wrong-host fetches.
+  if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+    console.warn(
+      '[SafeSignal] VITE_API_BASE_URL is missing the protocol (https://). ' +
+      'Set it to the full Render URL, e.g. https://safesignal-rc3b.onrender.com'
+    );
+    // Best-effort: prepend https://
+    return `https://${raw}/api`;
+  }
+
+  // If the caller already appended /api, keep it; otherwise append it.
+  return raw.endsWith('/api') ? raw : `${raw}/api`;
+}
+
+const API_BASE = buildApiBase();
+
+// Request timeout: 10 s for normal calls.
+// This prevents the browser from hanging indefinitely during a Render cold start
+// and allows the 3.5-second poller in App.jsx to retry on the next tick.
+const REQUEST_TIMEOUT_MS = 10000;
 
 async function request(endpoint, options = {}) {
-  // Ensure endpoint starts with a slash
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_BASE}${cleanEndpoint}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {})
   };
 
   try {
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetch(url, { ...options, headers, signal: controller.signal });
+    clearTimeout(timer);
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.message || `HTTP ${res.status}: ${res.statusText}`);
     }
     return await res.json();
   } catch (err) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') {
+      throw new Error(`Request to ${url} timed out after ${REQUEST_TIMEOUT_MS / 1000}s`);
+    }
     console.error(`API Error on ${url}:`, err);
     throw err;
   }
 }
 
 export const api = {
+  // Expose the resolved base so the UI can display it in the offline banner
+  baseUrl: API_BASE,
+
   // GET
   getHealth: () => request('/health'),
   getStatus: () => request('/status'),

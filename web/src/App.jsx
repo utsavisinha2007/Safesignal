@@ -13,7 +13,7 @@ import ActivityHistory from './pages/ActivityHistory';
 import DemonstrationLab from './pages/DemonstrationLab';
 
 import { api } from './services/api';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 
 export default function App() {
   const [status, setStatus] = useState(null);
@@ -21,6 +21,7 @@ export default function App() {
   const [serverConnected, setServerConnected] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Command center layout states
   const [collapsed, setCollapsed] = useState(false);
@@ -36,9 +37,11 @@ export default function App() {
       setStatus(statusRes);
       setJourney(journeyRes);
       setServerConnected(true);
+      setRetryCount(0);
     } catch (err) {
       console.warn('Backend server currently unreachable:', err.message);
       setServerConnected(false);
+      setRetryCount((n) => n + 1);
     } finally {
       setRefreshing(false);
       setInitialLoading(false);
@@ -62,9 +65,17 @@ export default function App() {
         {!serverConnected && !initialLoading && (
           <div className="bg-cmd-critical/15 border-b border-cmd-critical/40 text-rose-300 px-4 py-2.5 text-xs font-mono flex items-center justify-between shadow-lg backdrop-blur-sm z-30">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-cmd-critical animate-pulse" />
+              {retryCount <= 3 ? (
+                <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-cmd-critical animate-pulse" />
+              )}
               <span>
-                <strong className="text-rose-200">REST API OFFLINE:</strong> C++ Engine unreachable at <code>{import.meta.env.VITE_API_BASE_URL || '127.0.0.1:8080'}</code>. Ensure <code>SafeSignalServer</code> is running.
+                {retryCount <= 3 ? (
+                  <><strong className="text-amber-300">C++ ENGINE WARMING UP</strong> — Connecting to <code>{api.baseUrl}</code>… (attempt {retryCount})</>
+                ) : (
+                  <><strong className="text-rose-200">REST API OFFLINE:</strong> Cannot reach <code>{api.baseUrl}</code>. Check Render service status.</>
+                )}
               </span>
             </div>
             <button
