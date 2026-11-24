@@ -1,196 +1,203 @@
-# SafeSignal — Real-Time Women's Safety & Emergency Response Platform
+# 🛡️ SafeSignal – Smart Personal Safety & Emergency Response System
 
-SafeSignal is a mission-critical, full-stack personal safety and incident management platform designed for student campuses and solo travelers. Powered by a high-performance **C++17 safety engine** and connected to a modern **React + Tailwind CSS** web application, SafeSignal demonstrates how foundational Data Structures and Algorithms (DSA) solve real-world hazard detection, triage, and emergency dispatch challenges.
+**SafeSignal** is a smart personal safety and emergency response web application designed to identify potentially dangerous situations through simulated real-time sensor analysis, risk assessment, and automated emergency escalation.
+
+The system uses Data Structures and Algorithms (DSA) to analyze incoming safety readings, detect abnormal patterns, prioritize incidents, and initiate appropriate emergency response workflows.
+
+🌐 **Live Website:** https://web-puce-six-93.vercel.app/
 
 ---
 
-## 🌟 Architecture & Dual-Interface System
+## 📌 Table of Contents
 
-SafeSignal provides two distinct interfaces powered by the exact same C++ safety backend:
+1. Project Overview
+2. Problem Statement
+3. Key Features
+4. Technology Stack
+5. System Architecture
+6. Data Structures and Algorithms
+7. Working of the System
+8. Installation and Setup
+9. Project Limitations
+10. Future Scope
 
+## 🎯 1. Project Overview
+
+SafeSignal aims to improve personal safety, particularly for individuals travelling alone or moving through potentially unsafe environments.
+
+Unlike conventional emergency applications that primarily depend on manual SOS activation, SafeSignal demonstrates a proactive approach by analyzing simulated sensor readings and identifying unusual patterns that may indicate potential danger.
+
+The application provides a centralized Safety Command Centre where users can monitor risk levels, view incidents, and observe emergency escalation workflows.
+
+## ⚠️ 2. Problem Statement
+
+People travelling alone may face emergencies where they cannot immediately access their phones or manually request assistance.
+
+Traditional safety applications often depend on manual SOS activation, which may not always be possible.
+
+SafeSignal addresses this challenge through:
+- Continuous analysis of simulated safety readings.
+- Detection of abnormal movement and risk patterns.
+- Automated risk assessment.
+- Priority-based emergency incident handling.
+- Structured emergency escalation workflows.
+
+## ✨ 3. Key Features
+
+- **One-Touch SOS:** Provides an interface for initiating an emergency alert.
+- **Risk Assessment:** Calculates risk scores based on incoming safety readings.
+- **Abnormal Activity Detection:** Identifies unusual patterns using sliding-window analysis.
+- **Safety Verification:** Demonstrates a verification stage before escalation.
+- **Emergency Command Centre:** Displays incident information and system status.
+- **Priority-Based Dispatch:** Organizes incidents according to their urgency.
+- **Time-Based Scheduling:** Supports scheduled verification and escalation events.
+- **Incident Monitoring:** Displays risk levels and emergency workflow information.
+
+## 💻 4. Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| React.js | Frontend user interface |
+| Vite | Frontend development and build tool |
+| JavaScript | Frontend functionality |
+| C++ | Core algorithm and backend processing |
+| REST API | Communication between frontend and backend |
+| HTML5 & CSS3 | Structure and styling |
+| Docker | Backend containerization |
+| Render | Backend deployment |
+| Vercel | Frontend deployment |
+| Git & GitHub | Version control and collaboration |
+
+## 🏗️ 5. System Architecture
+
+SafeSignal follows a frontend-backend architecture.
+
+### Frontend
+The React-based interface provides:
+- Safety dashboard
+- Risk monitoring
+- SOS functionality
+- Incident status
+- Emergency command centre
+
+### Backend
+The C++ backend handles:
+- Sensor reading analysis
+- Sliding-window processing
+- Risk evaluation
+- Incident verification
+- Priority-based emergency dispatch
+
+### API Communication
+The REST API connects the frontend with the C++ backend and transfers information between the two components.
+
+## 🧠 6. Data Structures and Algorithms Used
+
+DSA plays an important role in the processing and management of safety events.
+
+| DSA Concept | Application in SafeSignal |
+|---|---|
+| Sliding Window | Analyzes recent sensor readings over a fixed time interval. |
+| Queue | Maintains incoming safety events in processing order where required. |
+| Priority Queue | Prioritizes emergency incidents according to their urgency. |
+| Arrays / Vectors | Store and process sensor readings and event data. |
+| Sorting / Priority Ordering | Helps organize incidents based on risk or priority. |
+| Time-Based Scheduling | Manages verification and escalation events at scheduled intervals. |
+
+### Sliding Window Algorithm
+The sliding-window technique examines a fixed group of recent sensor readings instead of processing the entire historical dataset repeatedly.
+
+This helps identify unusual patterns and changes in movement or activity.
+
+### Priority Queue
+A priority queue helps process high-risk incidents before lower-priority incidents, ensuring that more urgent situations receive attention first.
+
+### Time-Based Scheduling
+Time-based scheduling manages actions that need to occur after a specified interval, such as safety verification and emergency escalation.
+
+## 🔄 7. Working of the System
+
+1. **Data Input:** Simulated sensor readings and safety events enter the system.
+2. **Data Processing:** The C++ backend processes the incoming readings.
+3. **Pattern Detection:** Sliding-window analysis examines recent readings for abnormal patterns.
+4. **Risk Assessment:** The system evaluates the detected patterns and calculates a risk score.
+5. **Safety Verification:** If the risk exceeds a defined threshold, a verification workflow is initiated.
+6. **Incident Prioritization:** The priority queue organizes incidents according to urgency.
+7. **Emergency Escalation:** The system demonstrates the appropriate emergency response workflow.
+8. **Dashboard Update:** The frontend displays updated risk levels and incident statuses.
+
+## ⚙️ 8. Installation and Setup
+
+### Prerequisites
+
+- Node.js and npm
+- C++ compiler (supporting C++17 or later)
+- CMake
+- Git
+
+### Step 1: Clone the Repository
+
+```bash
+git clone YOUR_GITHUB_REPOSITORY_URL
+cd SafeSignal
 ```
-                            ┌──────────────────────────────────┐
-                            │    SafeSignal Safety Engine      │
-                            │      (Native C++17 Core)         │
-                            │                                  │
-                            │  • Sliding-Window Risk Scoring   │
-                            │  • Checkpoint Route Tracking     │
-                            │  • 5-min Grace Safety Check-ins  │
-                            │  • 3-min Verification Timeouts   │
-                            │  • Priority Queue Dispatch Heap  │
-                            └────────────────┬─────────────────┘
-                                             │
-                      ┌──────────────────────┴──────────────────────┐
-                      ▼                                             ▼
-        ┌───────────────────────────┐                 ┌───────────────────────────┐
-        │  SafeSignal Console App   │                 │   SafeSignal REST API     │
-        │     (SafeSignal.exe)      │                 │  (SafeSignalServer.exe)   │
-        ├───────────────────────────┤                 ├───────────────────────────┤
-        │ • User Mode (8 Options)   │                 │ • cpp-httplib (Port 8080) │
-        │ • Demo Mode (30 Options)  │                 │ • nlohmann/json (CORS)    │
-        └───────────────────────────┘                 │ • Mutex Synchronized      │
-                                                      └─────────────┬─────────────┘
-                                                                    │ HTTP / JSON
-                                                                    ▼
-                                                      ┌───────────────────────────┐
-                                                      │    React Web Portal       │
-                                                      │  (http://localhost:5173)  │
-                                                      ├───────────────────────────┤
-                                                      │ 1. Dashboard              │
-                                                      │ 2. Journey Manager        │
-                                                      │ 3. Emergency Contacts     │
-                                                      │ 4. Safety Check-ins       │
-                                                      │ 5. Emergency Center (SOS) │
-                                                      │ 6. Activity History       │
-                                                      │ 7. Demonstration Lab      │
-                                                      └───────────────────────────┘
-```
 
----
+### Step 2: Install Frontend Dependencies
 
-## 🧠 Core Data Structures & Algorithms (DSA)
-
-Every safety decision runs natively in C++:
-
-| Subsystem | Primary Data Structure | Algorithmic Mechanism | Time Complexity |
-|---|---|---|---|
-| **RiskAnalyzer** | `std::deque<TimestampedEvent>` | 10-minute sliding time window with multi-day rollover | $O(1)$ amortized insertion & pruning |
-| **ResponseManager** | `std::priority_queue<Incident>` | Severity-based emergency triage Max-Heap | $O(\log n)$ insertion & extraction |
-| **Incident Registry** | `std::unordered_map<int, Incident>` | $O(1)$ lookup, lifecycle transitions & duplicate suppression | $O(1)$ average-case lookup |
-| **VerificationManager** | `std::unordered_map<int, VerificationRequest>` | $O(1)$ verification tracking with 3-minute timeout window | $O(1)$ average-case lookup |
-| **JourneyManager** | `std::vector<std::string>` | Checkpoint progression with forward-lookahead skip recovery | $O(m)$ lookahead search |
-| **CheckInManager** | `std::vector<CheckIn>` | Scheduled check-ins with 5-minute grace period enforcement | $O(c)$ deadline evaluation |
-| **Contact Directory** | `std::vector<Contact>` | 3-tier emergency directory (Tier 1 Primary, Tier 2 Secondary, Tier 3 Police) | $O(n)$ priority filtering |
-
----
-
-## 🛠️ Simulation Model Notice
-
-SafeSignal is designed to run deterministically for education and academic demonstration without physical cellular modems or real GPS hardware:
-- **Simulated GPS**: Waypoints and locations are submitted along planned checkpoints.
-- **Simulated Clock**: The clock advances via timestamp updates (`HH:MM` or `HH:MM:SS`) to demonstrate grace periods and timeouts.
-- **Simulated Dispatch**: Contact notifications (SMS/Calls) and security alerts are rendered directly to the console and audit logs.
-
----
-
-## 🚀 Quick Start Guide (Windows / PowerShell)
-
-### Option A: Launch Web Application (One-Click)
-```powershell
-.\start_safesignal.ps1
-```
-This automatically starts `SafeSignalServer.exe` on `127.0.0.1:8080` and launches the Vite React frontend on `http://localhost:5173`.
-
----
-
-### Option B: Manual Multi-Terminal Startup
-
-#### Terminal 1 — C++ REST API Server
-```powershell
-# Compile Server (if not already compiled)
-g++ -std=c++17 -O2 -o SafeSignalServer.exe server/server_main.cpp server/api_handlers.cpp src/*.cpp -Iinclude -Iserver -lws2_32
-
-# Run Server
-.\SafeSignalServer.exe
-```
-
-#### Terminal 2 — React Web Frontend
-```powershell
-cd web
+```bash
 npm install
+```
+
+### Step 3: Run the Frontend
+
+```bash
 npm run dev
 ```
-Open **`http://localhost:5173`** in your browser.
 
-#### Terminal 3 (Optional) — Standalone Console Application
-```powershell
-# Run original Dual-Mode Console Application
-.\SafeSignal.exe
+### Step 4: Build and Run the C++ Backend
+
+Use the project's CMake configuration:
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
 ```
+
+Run the generated backend executable according to your operating system and project configuration.
+
+**Note:** Ensure the backend API is running and the frontend API configuration points to the correct backend URL.
+
+## 🚧 9. Project Limitations
+
+- Sensor readings and GPS information are simulated.
+- The project does not currently integrate physical wearable hardware.
+- Emergency calls are not connected to actual police, ambulance, or emergency services.
+- Location tracking and notification broadcasts are demonstrated through a software-based simulation.
+- Real-world deployment would require hardware integration, secure communication, and reliable emergency service connectivity.
+
+## 🚀 10. Future Scope
+
+- Integration with smartwatches and wearable safety devices.
+- Real-time GPS tracking.
+- Integration with accelerometers and gyroscope sensors.
+- Machine learning-based abnormal activity detection.
+- Live emergency contact notifications.
+- Integration with authorized emergency response services.
+- Mobile application development.
+- Cloud-based incident storage and analytics.
+
+## 🎓 Project Purpose
+
+SafeSignal demonstrates how Data Structures and Algorithms can be applied to a real-world safety problem through software engineering, real-time data processing concepts, risk assessment, and emergency response management.
+
+**Project Category:** Application
+
+**Thrust Area:** Smart Systems
+
+**Core Focus:** Data Structures and Algorithms (DSA)
 
 ---
 
-## 🧪 Testing & Verification
-
-SafeSignal includes 7 C++ test suites and 1 comprehensive REST API integration test suite covering **572 automated assertions**:
-
-### 1. Run All 7 C++ Backend Test Suites (550 / 550 Passed)
-```powershell
-.\test_contact.exe
-.\test_checkin.exe
-.\test_risk_analyzer.exe
-.\test_verification.exe
-.\test_safety_system_verification.exe
-.\test_dispatch_lifecycle.exe
-.\test_end_to_end_system.exe
-```
-
-### 2. Run C++ REST API Integration Test Suite (22 / 22 Passed)
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tests\test_api_server.ps1
-```
-
-### 3. Build Frontend for Production
-```powershell
-cd web
-npm run build
-```
-
----
-
-## 📂 Project Directory Structure
-
-```
-safesignal/
-├── docs/
-│   ├── architecture.md                # System Architecture & State Machine specs
-│   └── api_specification.md           # REST API Endpoint reference
-├── include/                           # C++ Header Files
-│   ├── CheckInManager.h
-│   ├── Contact.h
-│   ├── Event.h
-│   ├── Incident.h
-│   ├── JourneyManager.h
-│   ├── ResponseManager.h
-│   ├── RiskAnalyzer.h
-│   ├── SafetySystem.h
-│   └── VerificationManager.h
-├── src/                               # C++ Source Files
-│   ├── CheckInManager.cpp
-│   ├── Contact.cpp
-│   ├── Event.cpp
-│   ├── Incident.cpp
-│   ├── JourneyManager.cpp
-│   ├── ResponseManager.cpp
-│   ├── RiskAnalyzer.cpp
-│   ├── SafetySystem.cpp
-│   └── VerificationManager.cpp
-├── server/                            # C++ REST API Server
-│   ├── third_party/
-│   │   ├── httplib.h                  # cpp-httplib (v0.18.3, MIT)
-│   │   └── json.hpp                   # nlohmann/json (v3.11.3, MIT)
-│   ├── api_handlers.h
-│   ├── api_handlers.cpp
-│   └── server_main.cpp
-├── web/                               # React + Vite + Tailwind CSS Frontend
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── index.html
-│   └── src/
-│       ├── components/                # Navbar, Sidebar, StatusBadge, DisclosureBanner
-│       ├── pages/                     # Dashboard, Journey, Contacts, Check-ins, SOS, History, Demo
-│       ├── services/                  # api.js client
-│       └── App.jsx
-├── tests/                             # Unit & Integration Tests
-│   ├── test_checkin.cpp
-│   ├── test_contact.cpp
-│   ├── test_dispatch_lifecycle.cpp
-│   ├── test_end_to_end_system.cpp
-│   ├── test_risk_analyzer.cpp
-│   ├── test_safety_system_verification.cpp
-│   ├── test_verification.cpp
-│   └── test_api_server.ps1            # 22-step API test suite
-├── main.cpp                           # Console Entry Point (User + Demo Mode)
-├── start_safesignal.ps1               # Unified startup launcher
-└── README.md
-```
+*SafeSignal is currently an academic software simulation and prototype. It is not a certified emergency response or life-safety system.*
